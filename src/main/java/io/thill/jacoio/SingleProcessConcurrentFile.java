@@ -31,7 +31,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 class SingleProcessConcurrentFile implements ConcurrentFile {
 
-  static SingleProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) {
+  static SingleProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
+    if(file.exists())
+      throw new IOException("File Exists. SingleProcessConcurrentFile cannot modify an existing file.");
     final int fileSize = capacity;
     final FileChannel fileChannel = IoUtil.createEmptyFile(file, fileSize, fillWithZeros);
     final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
