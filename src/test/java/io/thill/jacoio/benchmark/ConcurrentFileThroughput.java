@@ -1,6 +1,6 @@
 package io.thill.jacoio.benchmark;
 
-import io.thill.jacoio.file.ConcurrentFile;
+import io.thill.jacoio.ConcurrentFile;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -76,7 +76,7 @@ public class ConcurrentFileThroughput {
       while(curFile.isPending())
         Thread.sleep(10);
       curFile.close();
-      curFile.getFile().delete();
+      curFile.file().delete();
       curFile = null;
 
       // aggregate results
@@ -93,7 +93,7 @@ public class ConcurrentFileThroughput {
 
   private void nextFile() {
     try {
-      curFile = ConcurrentFile.mapNewFile(new File(directory, Integer.toString(fileNumber++)), fileSize, false);
+      curFile = ConcurrentFile.map().multiProcess(false).location(new File(directory, Integer.toString(fileNumber++))).capacity(fileSize).map();
     } catch(Throwable t) {
       t.printStackTrace();
       curFile = null;
@@ -116,10 +116,8 @@ public class ConcurrentFileThroughput {
     public void run() {
       while(keepRunning) {
         final ConcurrentFile curFile = ConcurrentFileThroughput.this.curFile;
-        final int offset = curFile.reserve(writeArray.length);
+        final int offset = curFile.write(writeArray, 0, writeArray.length);
         if(offset >= 0) {
-          curFile.getBuffer().putBytes(offset, writeArray, 0, writeArray.length);
-          curFile.wrote(writeArray.length);
           totalWrites.incrementAndGet();
         } else if(index == 0) {
           final ConcurrentFile lastFile = curFile;
@@ -129,7 +127,7 @@ public class ConcurrentFileThroughput {
               while(curFile.isPending())
                 Thread.sleep(10);
               lastFile.close();
-              while(!lastFile.getFile().delete())
+              while(!lastFile.file().delete())
                 Thread.sleep(10);
             } catch(Throwable t) {
               t.printStackTrace();

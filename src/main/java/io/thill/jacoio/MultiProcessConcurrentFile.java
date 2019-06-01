@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
-package io.thill.jacoio.file;
+package io.thill.jacoio;
 
 import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
@@ -22,51 +22,42 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.nio.charset.Charset;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Maps an underlying file to provide concurrent, multi-process, lock-free write operations.
+ * Implements {@link ConcurrentFile} to provide multi-process writing using a 32-byte header for offset coordination. Multiple processes can write to the file
+ * at one time, and it is able to re-open and continue appending to an existing file.
  *
  * @author Eric Thill
  */
-public class ConcurrentFile implements AutoCloseable {
+class MultiProcessConcurrentFile implements ConcurrentFile {
 
   public static final int HEADER_SIZE = 32;
-  public static final int NULL_OFFSET = -1;
 
   private static final int OFFSET_DATA_START = 0;
   private static final int OFFSET_FILE_SIZE = 8;
   private static final int OFFSET_NEXT_WRITE = 16;
   private static final int OFFSET_WRITE_COMPLETE = 24;
-  private static final int CHAR_SIZE = 2;
-  private static final Charset UTF8 = Charset.forName("UTF-8");
 
-  /**
-   * Map an existing {@link ConcurrentFile}
-   *
-   * @param file The existing file to wrap
-   * @return the {@link ConcurrentFile}
-   */
-  public static ConcurrentFile mapExistingFile(File file) throws IOException {
+  static MultiProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
+    if(file.exists()) {
+      return mapExistingFile(file);
+    } else {
+      return mapNewFile(file, capacity, fillWithZeros);
+    }
+  }
+
+  private static MultiProcessConcurrentFile mapExistingFile(File file) throws IOException {
     final FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
     final int fileSize = (int)fileChannel.size();
     final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
     final AtomicBuffer buffer = new UnsafeBuffer();
     buffer.wrap(address, fileSize);
-    return new ConcurrentFile(file, fileChannel, buffer, fileSize);
+    return new MultiProcessConcurrentFile(file, fileChannel, buffer, fileSize);
   }
 
-  /**
-   * Create a new {@link ConcurrentFile}
-   *
-   * @param file          The new file to create
-   * @param capacity      The capacity of the
-   * @param fillWithZeros Fill the new file with 0s
-   * @return the {@link ConcurrentFile}
-   */
-  public static ConcurrentFile mapNewFile(File file, int capacity, boolean fillWithZeros) {
+  private static MultiProcessConcurrentFile mapNewFile(File file, int capacity, boolean fillWithZeros) {
     final int fileSize = HEADER_SIZE + capacity;
     final FileChannel fileChannel = IoUtil.createEmptyFile(file, fileSize, fillWithZeros);
     final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
@@ -81,7 +72,7 @@ public class ConcurrentFile implements AutoCloseable {
       buffer.putLongVolatile(OFFSET_WRITE_COMPLETE, 0);
     }
 
-    return new ConcurrentFile(file, fileChannel, buffer, fileSize);
+    return new MultiProcessConcurrentFile(file, fileChannel, buffer, fileSize);
   }
 
   private final AtomicLong numLocalWrites = new AtomicLong(0);
@@ -91,7 +82,7 @@ public class ConcurrentFile implements AutoCloseable {
   private final AtomicBuffer buffer;
   private final long fileSize;
 
-  ConcurrentFile(File file, FileChannel fileChannel, AtomicBuffer buffer, int fileSize) {
+  MultiProcessConcurrentFile(File file, FileChannel fileChannel, AtomicBuffer buffer, int fileSize) {
     this.file = file;
     this.fileChannel = fileChannel;
     this.buffer = buffer;
@@ -113,28 +104,18 @@ public class ConcurrentFile implements AutoCloseable {
     IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
   }
 
-  /**
-   * Check if there are pending local writes to be completed
-   *
-   * @return true if there are pending local writes, false otherwise
-   */
+  @Override
   public boolean isPending() {
     return numLocalWritesComplete.get() != numLocalWrites.get();
   }
 
-  /**
-   * Mark the file as finished, so no more writes can ever be performed. This will populate the fileSize field in the file header.
-   */
+  @Override
   public void finish() {
     // this will happen automatically if we reserve more bytes than can fit in the int32 (minus header) worth of data
     reserve(Integer.MAX_VALUE);
   }
 
-  /**
-   * Check if all pending writes have completed and no more writes can ever be written
-   *
-   * @return true if no writes can ever be performed
-   */
+  @Override
   public boolean isFinished() {
     final long writeComplete = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
     final long nextOffset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
@@ -142,32 +123,17 @@ public class ConcurrentFile implements AutoCloseable {
     return writeComplete == nextOffset && writeComplete >= fileSize && buffer.getLongVolatile(OFFSET_FILE_SIZE) > 0;
   }
 
-  /**
-   * Get the underlying buffer
-   *
-   * @return The buffer
-   */
-  public AtomicBuffer getBuffer() {
-    return buffer;
-  }
-
-  /**
-   * Get the underlying {@link File}
-   *
-   * @return the underlying file
-   */
-  public File getFile() {
+  @Override
+  public File file() {
     return file;
   }
 
-  /**
-   * Reserve space for a write. A corresponding call to {@link ConcurrentFile#wrote(long)} must be made after the write is complete. Do not call {@link
-   * ConcurrentFile#wrote(long)} when -1 is returned.
-   *
-   * @param length The length of bytes to write
-   * @return The offset the bytes should be written. -1 if there is no space left.
-   */
-  public int reserve(int length) {
+  @Override
+  public int startOffset() {
+    return HEADER_SIZE;
+  }
+
+  private int reserve(int length) {
     numLocalWrites.incrementAndGet();
 
     long offset;
@@ -194,12 +160,7 @@ public class ConcurrentFile implements AutoCloseable {
     return (int)offset;
   }
 
-  /**
-   * Finalize a write
-   *
-   * @param length The length of bytes written
-   */
-  public void wrote(long length) {
+  private void wrote(long length) {
     long lastVal;
     do {
       lastVal = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
@@ -207,14 +168,7 @@ public class ConcurrentFile implements AutoCloseable {
     numLocalWritesComplete.incrementAndGet();
   }
 
-  /**
-   * Write the given bytes from the given offset to the given length
-   *
-   * @param srcBytes  the source byte array
-   * @param srcOffset the offset in the source byte array
-   * @param length    the number of bytes to write
-   * @return the offset at which the bytes were written, -1 if it could not fit
-   */
+  @Override
   public int write(final byte[] srcBytes, final int srcOffset, final int length) {
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
@@ -229,14 +183,7 @@ public class ConcurrentFile implements AutoCloseable {
     return dstOffset;
   }
 
-  /**
-   * Write the given buffer from the given offset to the given length
-   *
-   * @param srcBuffer the source buffer
-   * @param srcOffset the offset in the source buffer
-   * @param length    the number of bytes to write
-   * @return the offset at which the bytes were written, -1 if it could not fit
-   */
+  @Override
   public int write(final DirectBuffer srcBuffer, final int srcOffset, final int length) {
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
@@ -251,13 +198,7 @@ public class ConcurrentFile implements AutoCloseable {
     return dstOffset;
   }
 
-  /**
-   * Write the given ByteBuffer from {@link ByteBuffer#position()} with length={@link ByteBuffer#remaining()}. The position of the {@link ByteBuffer} will not
-   * be changed.
-   *
-   * @param srcByteBuffer the source byte buffer
-   * @return the offset at which the bytes were written, -1 if it could not fit
-   */
+  @Override
   public int write(final ByteBuffer srcByteBuffer) {
     final int length = srcByteBuffer.remaining();
     final int dstOffset = reserve(length);
@@ -273,12 +214,7 @@ public class ConcurrentFile implements AutoCloseable {
     return dstOffset;
   }
 
-  /**
-   * Write the given CharSequence as ascii characters
-   *
-   * @param srcCharSequence the source character sequence
-   * @return the offset at which the characters were written, -1 if it could not fit
-   */
+  @Override
   public int writeAscii(final CharSequence srcCharSequence) {
     final int length = srcCharSequence.length();
     final int dstOffset = reserve(length);
@@ -297,22 +233,16 @@ public class ConcurrentFile implements AutoCloseable {
     return dstOffset;
   }
 
-  /**
-   * Write the given CharSequence as 2-byte characters
-   *
-   * @param srcCharSequence the source character sequence
-   * @param byteOrder       the destination byte-order
-   * @return the offset at which the characters were written, -1 if it could not fit
-   */
+  @Override
   public int writeChars(final CharSequence srcCharSequence, ByteOrder byteOrder) {
-    final int length = srcCharSequence.length() * CHAR_SIZE;
+    final int length = srcCharSequence.length() * 2;
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
       return NULL_OFFSET;
 
     try {
       for(int i = 0; i < srcCharSequence.length(); i++) {
-        buffer.putChar(dstOffset + (i * CHAR_SIZE), srcCharSequence.charAt(i), byteOrder);
+        buffer.putChar(dstOffset + (i * 2), srcCharSequence.charAt(i), byteOrder);
       }
     } finally {
       wrote(length);
@@ -321,13 +251,7 @@ public class ConcurrentFile implements AutoCloseable {
     return dstOffset;
   }
 
-  /**
-   * Write to the underlying buffer using the given {@link WriteFunction}
-   *
-   * @param length        the total number of bytes that will be written by the {@link WriteFunction}
-   * @param writeFunction the write function
-   * @return the offset at which the bytes were written, -1 if it could not fit
-   */
+  @Override
   public int write(final int length, final WriteFunction writeFunction) {
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
@@ -341,4 +265,5 @@ public class ConcurrentFile implements AutoCloseable {
 
     return dstOffset;
   }
+
 }
