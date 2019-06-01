@@ -12,7 +12,7 @@ public class FramedConcurrentFile implements ConcurrentFile {
   private static final int FRAME_HEADER_SIZE = 4;
   private final ConcurrentFile underlyingFile;
 
-  public FramedConcurrentFile(ConcurrentFile underlyingFile) {
+  FramedConcurrentFile(ConcurrentFile underlyingFile) {
     this.underlyingFile = underlyingFile;
   }
 
