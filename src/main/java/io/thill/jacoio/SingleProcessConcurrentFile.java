@@ -88,11 +88,6 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
     return file;
   }
 
-  @Override
-  public int startOffset() {
-    return 0;
-  }
-
   private int reserve(int length) {
     long offset;
     do {
@@ -215,7 +210,7 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
       return NULL_OFFSET;
 
     try {
-      writeFunction.write(buffer, dstOffset);
+      writeFunction.write(buffer, dstOffset, length);
     } finally {
       wrote(length);
     }

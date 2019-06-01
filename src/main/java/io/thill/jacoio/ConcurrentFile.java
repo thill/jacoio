@@ -57,13 +57,6 @@ public interface ConcurrentFile extends AutoCloseable {
   File file();
 
   /**
-   * Get the offset in the file in which data starts. Some implementations have headers, so this method will provide the necessary information for parsing.
-   *
-   * @return the start offset of the data
-   */
-  int startOffset();
-
-  /**
    * Write the given bytes from the given offset to the given length
    *
    * @param srcBytes  the source byte array

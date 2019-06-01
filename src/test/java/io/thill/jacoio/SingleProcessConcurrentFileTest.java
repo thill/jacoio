@@ -40,71 +40,78 @@ public class SingleProcessConcurrentFileTest {
     file = SingleProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
   }
 
+  protected int startOffset() {
+    return 0;
+  }
+
+  protected int frameHeaderSize() {
+    return 0;
+  }
+
   @Test
-  public void testWriteByteArray() throws Exception  {
+  public void testWriteByteArray() throws Exception {
     createFile(128, false);
 
     byte[] writeBytes = "Hello World!".getBytes();
     int offset = file.write(writeBytes, 0, writeBytes.length);
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt(writeBytes, offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeBytes, offset + frameHeaderSize());
   }
 
   @Test
-  public void testWriteByteBuffer() throws Exception  {
+  public void testWriteByteBuffer() throws Exception {
     createFile(128, false);
 
     ByteBuffer writeByteBuffer = ByteBuffer.wrap("Hello World!".getBytes());
     int offset = file.write(writeByteBuffer);
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt(writeByteBuffer.array(), offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeByteBuffer.array(), offset + frameHeaderSize());
   }
 
   @Test
-  public void testWriteDirectBuffer() throws Exception  {
+  public void testWriteDirectBuffer() throws Exception {
     createFile(128, false);
 
     DirectBuffer writeDirectBuffer = new UnsafeBuffer("Hello World!".getBytes());
     int offset = file.write(writeDirectBuffer, 0, writeDirectBuffer.capacity());
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt(writeDirectBuffer.byteArray(), offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeDirectBuffer.byteArray(), offset + frameHeaderSize());
   }
 
   @Test
-  public void testWriteFunction() throws Exception  {
+  public void testWriteFunction() throws Exception {
     createFile(128, false);
 
     byte[] writeBytes = "Hello World!".getBytes();
-    int offset = file.write(writeBytes.length, (buffer, off) -> {
+    int offset = file.write(writeBytes.length, (buffer, off, length) -> {
       buffer.putBytes(off, writeBytes);
     });
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt(writeBytes, offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeBytes, offset + frameHeaderSize());
   }
 
   @Test
-  public void testWriteAscii() throws Exception  {
+  public void testWriteAscii() throws Exception {
     createFile(128, false);
 
-    int offset = file.writeAscii("Hello ");
-    file.writeAscii("World!");
+    int offset = file.writeAscii("Hello World!");
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt("Hello World!".getBytes("UTF-8"), offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt("Hello World!".getBytes("UTF-8"), offset + frameHeaderSize());
   }
 
   @Test
-  public void testWriteChars() throws Exception  {
+  public void testWriteChars() throws Exception {
     createFile(128, false);
 
     int offset = file.writeChars("Hello World!", ByteOrder.LITTLE_ENDIAN);
 
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt("Hello World!".getBytes("UTF-16LE"), offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt("Hello World!".getBytes("UTF-16LE"), offset + frameHeaderSize());
   }
 
   @Test
@@ -116,16 +123,16 @@ public class SingleProcessConcurrentFileTest {
     byte[] buffer2 = "bytes2".getBytes();
     int offset2 = file.write(buffer2, 0, buffer2.length);
 
-    Assert.assertEquals(file.startOffset(), offset1);
-    Assert.assertEquals(file.startOffset() + buffer1.length, offset2);
+    Assert.assertEquals(startOffset(), offset1);
+    Assert.assertEquals(startOffset() + frameHeaderSize() + buffer1.length, offset2);
 
-    assertBytesAt(buffer1, offset1);
-    assertBytesAt(buffer2, offset2);
+    assertBytesAt(buffer1, offset1 + frameHeaderSize());
+    assertBytesAt(buffer2, offset2 + frameHeaderSize());
   }
 
   @Test
   public void testMultipleWritesExceedCapacity() throws Exception {
-    createFile(20, false);
+    createFile(20 + frameHeaderSize()*3, false);
 
     byte[] buffer1 = "buffer1".getBytes();
     int offset1 = file.write(buffer1, 0, buffer1.length);
@@ -134,31 +141,31 @@ public class SingleProcessConcurrentFileTest {
     byte[] buffer3 = "buffer3".getBytes();
     int offset3 = file.write(buffer3, 0, buffer3.length);
 
-    Assert.assertEquals(file.startOffset(), offset1);
-    Assert.assertEquals(file.startOffset() + buffer1.length, offset2);
+    Assert.assertEquals(startOffset(), offset1);
+    Assert.assertEquals(startOffset() + frameHeaderSize() + buffer1.length, offset2);
     Assert.assertEquals(-1, offset3);
 
-    assertBytesAt(buffer1, offset1);
-    assertBytesAt(buffer2, offset2);
+    assertBytesAt(buffer1, offset1 + frameHeaderSize());
+    assertBytesAt(buffer2, offset2 + frameHeaderSize());
   }
 
   @Test
   public void testSingleWriteExceedsCapacity() throws Exception {
-    createFile(128, false);
+    createFile(128 + frameHeaderSize(), false);
     int offset = file.write(ByteBuffer.wrap(new byte[129]));
     Assert.assertEquals(-1, offset);
   }
 
   @Test
   public void testSingleWriteExactlyFits() throws Exception {
-    createFile(128, false);
+    createFile(128 + frameHeaderSize(), false);
     byte[] writeBytes = new byte[128];
     for(int i = 0; i < writeBytes.length; i++) {
       writeBytes[i] = (byte)i;
     }
     int offset = file.write(writeBytes, 0, writeBytes.length);
-    Assert.assertEquals(file.startOffset(), offset);
-    assertBytesAt(writeBytes, offset);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeBytes, offset + frameHeaderSize());
   }
 
   protected void assertBytesAt(byte[] expected, int offset) throws IOException {

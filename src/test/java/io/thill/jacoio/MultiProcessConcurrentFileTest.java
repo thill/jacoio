@@ -33,6 +33,11 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     file = MultiProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
   }
 
+  @Override
+  protected int startOffset() {
+    return HEADER_SIZE;
+  }
+
   @Test
   public void testMapExistingFile() throws Exception {
     createFile(128, false);

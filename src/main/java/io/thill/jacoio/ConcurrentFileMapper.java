@@ -25,6 +25,7 @@ public class ConcurrentFileMapper {
   private int capacity;
   private boolean fillWithZeros = false;
   private boolean multiProcess = false;
+  private boolean framed = false;
 
   ConcurrentFileMapper() {
     // not public, use ConcurrentFile.map()
@@ -50,6 +51,11 @@ public class ConcurrentFileMapper {
     return this;
   }
 
+  public ConcurrentFileMapper framed(boolean framed) {
+    this.framed = framed;
+    return this;
+  }
+
   public ConcurrentFile map() throws IOException {
     if(location == null)
       throw new IllegalArgumentException("location cannot be null");
@@ -57,11 +63,14 @@ public class ConcurrentFileMapper {
       throw new IllegalArgumentException("capacity must be non-zero");
 
     ConcurrentFile file;
-    if(multiProcess) {
+    if(multiProcess)
       file = MultiProcessConcurrentFile.map(location, capacity, fillWithZeros);
-    } else {
+    else
       file = SingleProcessConcurrentFile.map(location, capacity, fillWithZeros);
-    }
+
+    if(framed)
+      file = new FramedConcurrentFile(file);
+
     return file;
   }
 }

@@ -15,5 +15,5 @@ import org.agrona.concurrent.AtomicBuffer;
 
 @FunctionalInterface
 public interface WriteFunction {
-  void write(AtomicBuffer buffer, int offset);
+  void write(AtomicBuffer buffer, int offset, int length);
 }

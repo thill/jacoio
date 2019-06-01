@@ -128,11 +128,6 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
     return file;
   }
 
-  @Override
-  public int startOffset() {
-    return HEADER_SIZE;
-  }
-
   private int reserve(int length) {
     numLocalWrites.incrementAndGet();
 
@@ -258,7 +253,7 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
       return NULL_OFFSET;
 
     try {
-      writeFunction.write(buffer, dstOffset);
+      writeFunction.write(buffer, dstOffset, length);
     } finally {
       wrote(length);
     }
