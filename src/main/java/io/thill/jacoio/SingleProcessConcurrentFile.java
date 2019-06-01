@@ -61,6 +61,8 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
   public void close() throws IOException {
     if(isPending())
       throw new IOException("There are pending writes");
+    if(finalFileSize.get() > 0)
+      fileChannel.truncate(finalFileSize.get());
     fileChannel.close();
     IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
   }

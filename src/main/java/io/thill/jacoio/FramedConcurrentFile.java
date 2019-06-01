@@ -7,6 +7,13 @@ import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/**
+ * An implementation of {@link ConcurrentFile} that wraps an underlying {@link ConcurrentFile} to provide write framing. Each write will be prepended with a
+ * 32-bit length field. The length field is populated after the corresponding write. This allows concurrent readers to be able to read the file by waiting for
+ * the length field of each frame to be populated before reading the corresponding data.
+ *
+ * @author Eric Thill
+ */
 public class FramedConcurrentFile implements ConcurrentFile {
 
   private static final int FRAME_HEADER_SIZE = 4;

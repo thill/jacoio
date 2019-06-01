@@ -14,7 +14,7 @@ public class ConcurrentFileThroughput {
   public static void main(String[] args) {
     final File directory = new File("target/benchmark");
     directory.mkdirs();
-    new ConcurrentFileThroughput(directory, 1024 * 1024 * 128, 128, 10).execute(1, 10);
+    new ConcurrentFileThroughput(directory, 1024 * 1024 * 128, 128, 10).execute(5, 10);
   }
 
   private final Random random = new Random();
