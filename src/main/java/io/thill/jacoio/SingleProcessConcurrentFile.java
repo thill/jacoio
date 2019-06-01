@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2019 Eric Thill
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -25,7 +25,7 @@ import java.nio.channels.FileChannel.MapMode;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Extends {@link ConcurrentFile} to provide single-process writing. There is no file header, and a file cannot be reopened after it has been closed.
+ * Extends {@link ConcurrentFile} to provide single-process writing. There is no getFile header, and a getFile cannot be reopened after it has been closed.
  *
  * @author Eric Thill
  */
@@ -33,7 +33,7 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
 
   static SingleProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
     if(file.exists())
-      throw new IOException("File Exists. SingleProcessConcurrentFile cannot modify an existing file.");
+      throw new IOException("File Exists. SingleProcessConcurrentFile cannot modify an existing getFile.");
     final int fileSize = capacity;
     final FileChannel fileChannel = IoUtil.createEmptyFile(file, fileSize, fillWithZeros);
     final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
@@ -86,7 +86,7 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
   }
 
   @Override
-  public File file() {
+  public File getFile() {
     return file;
   }
 
@@ -105,7 +105,7 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
       // first message that will not fit
       // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
       wrote(length);
-      // set final file size
+      // set final getFile size
       finalFileSize.set(offset);
       return NULL_OFFSET;
     }

@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2019 Eric Thill
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * Maps an underlying file to provide concurrent, lock-free write operations.
+ * Maps an underlying getFile to provide concurrent, lock-free write operations.
  *
  * @author Eric Thill
  */
@@ -38,7 +38,7 @@ public interface ConcurrentFile extends AutoCloseable {
   boolean isPending();
 
   /**
-   * Mark the file as finished, so no more writes can ever be performed. This will populate the fileSize field in the file header.
+   * Mark the getFile as finished, so no more writes can ever be performed. This will populate the fileSize field in the getFile header.
    */
   void finish();
 
@@ -52,9 +52,9 @@ public interface ConcurrentFile extends AutoCloseable {
   /**
    * Get the underlying {@link File}
    *
-   * @return the underlying file
+   * @return the underlying getFile
    */
-  File file();
+  File getFile();
 
   /**
    * Write the given bytes from the given offset to the given length

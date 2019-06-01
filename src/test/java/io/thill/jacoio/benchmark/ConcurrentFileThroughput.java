@@ -54,7 +54,7 @@ public class ConcurrentFileThroughput {
       for(int i = 0; i < numThreads; i++)
         writerThreads.add(new WriterThread(i));
 
-      // create the first file to write
+      // create the first getFile to write
       nextFile();
 
       // start the writer threads
@@ -72,11 +72,11 @@ public class ConcurrentFileThroughput {
           Thread.sleep(10);
       }
 
-      // delete the last file
+      // delete the last getFile
       while(curFile.isPending())
         Thread.sleep(10);
       curFile.close();
-      curFile.file().delete();
+      curFile.getFile().delete();
       curFile = null;
 
       // aggregate results
@@ -127,7 +127,7 @@ public class ConcurrentFileThroughput {
               while(curFile.isPending())
                 Thread.sleep(10);
               lastFile.close();
-              while(!lastFile.file().delete())
+              while(!lastFile.getFile().delete())
                 Thread.sleep(10);
             } catch(Throwable t) {
               t.printStackTrace();

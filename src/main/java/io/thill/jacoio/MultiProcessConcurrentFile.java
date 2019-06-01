@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2019 Eric Thill
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -26,8 +26,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Implements {@link ConcurrentFile} to provide multi-process writing using a 32-byte header for offset coordination. Multiple processes can write to the file
- * at one time, and it is able to re-open and continue appending to an existing file.
+ * Implements {@link ConcurrentFile} to provide multi-process writing using a 32-byte header for offset coordination. Multiple processes can write to the getFile
+ * at one time, and it is able to re-open and continue appending to an existing getFile.
  *
  * @author Eric Thill
  */
@@ -64,7 +64,7 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
     final AtomicBuffer buffer = new UnsafeBuffer();
     buffer.wrap(address, fileSize);
 
-    // ensure file header is filled with zeros
+    // ensure getFile header is filled with zeros
     if(!fillWithZeros) {
       buffer.putLongVolatile(OFFSET_DATA_START, 0);
       buffer.putLongVolatile(OFFSET_FILE_SIZE, 0);
@@ -119,12 +119,12 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
   public boolean isFinished() {
     final long writeComplete = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
     final long nextOffset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
-    // check that writeComplete is caught up to nextOffset, that writeComplete exceeds the file size, and that the fileSize field is populated
+    // check that writeComplete is caught up to nextOffset, that writeComplete exceeds the getFile size, and that the fileSize field is populated
     return writeComplete == nextOffset && writeComplete >= fileSize && buffer.getLongVolatile(OFFSET_FILE_SIZE) > 0;
   }
 
   @Override
-  public File file() {
+  public File getFile() {
     return file;
   }
 

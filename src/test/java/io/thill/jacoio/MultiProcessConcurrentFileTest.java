@@ -29,7 +29,7 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     File underlyingFile = File.createTempFile(getClass().getSimpleName(), ".bin");
     while(!underlyingFile.delete())
       Thread.sleep(10);
-    logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
+    logger.info("Testing with getFile at {}", underlyingFile.getAbsolutePath());
     file = MultiProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
   }
 
@@ -43,7 +43,7 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     createFile(128, false);
     file.write(ByteBuffer.wrap("Hello ".getBytes()));
 
-    try(ConcurrentFile existing = MultiProcessConcurrentFile.map(file.file(), 128, false)) {
+    try(ConcurrentFile existing = MultiProcessConcurrentFile.map(file.getFile(), 128, false)) {
       existing.write(ByteBuffer.wrap("World!".getBytes()));
       assertBytesAt("Hello World!".getBytes(), existing, HEADER_SIZE);
     }

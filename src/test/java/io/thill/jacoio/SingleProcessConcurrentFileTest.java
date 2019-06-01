@@ -36,7 +36,7 @@ public class SingleProcessConcurrentFileTest {
     File underlyingFile = File.createTempFile(getClass().getSimpleName(), ".bin");
     while(!underlyingFile.delete())
       Thread.sleep(10);
-    logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
+    logger.info("Testing with getFile at {}", underlyingFile.getAbsolutePath());
     file = SingleProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
   }
 
@@ -173,7 +173,7 @@ public class SingleProcessConcurrentFileTest {
   }
 
   protected static void assertBytesAt(byte[] expected, ConcurrentFile src, int offset) throws IOException {
-    byte[] fileBytes = Files.readAllBytes(Paths.get(src.file().toURI()));
+    byte[] fileBytes = Files.readAllBytes(Paths.get(src.getFile().toURI()));
     byte[] actual = Arrays.copyOfRange(fileBytes, offset, offset + expected.length);
     Assert.assertArrayEquals(expected, actual);
   }
