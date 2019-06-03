@@ -31,7 +31,7 @@ public class ConcurrentFileMapper {
   private final RollParameters roll = new RollParameters();
   private File location;
   private int capacity;
-  private boolean fillWithZeros = false;
+  private boolean fillWithZeros = true;
   private boolean multiProcess = false;
   private boolean framed = false;
 
@@ -76,7 +76,6 @@ public class ConcurrentFileMapper {
       throw new IllegalArgumentException("capacity must be non-zero");
     if(roll.enabled && multiProcess)
       throw new IllegalArgumentException("multi-process roll is not currently supported");
-
 
     if(roll.enabled) {
       location.mkdirs();
