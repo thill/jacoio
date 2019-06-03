@@ -29,7 +29,7 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     File underlyingFile = File.createTempFile(getClass().getSimpleName(), ".bin");
     while(!underlyingFile.delete())
       Thread.sleep(10);
-    logger.info("Testing with getFile at {}", underlyingFile.getAbsolutePath());
+    logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
     file = MultiProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
   }
 

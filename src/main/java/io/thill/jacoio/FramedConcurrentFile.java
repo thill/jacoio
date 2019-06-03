@@ -14,12 +14,12 @@ import java.nio.ByteOrder;
  *
  * @author Eric Thill
  */
-public class FramedConcurrentFile implements ConcurrentFile {
+public class FramedConcurrentFile implements MappedConcurrentFile {
 
   private static final int FRAME_HEADER_SIZE = 4;
-  private final ConcurrentFile underlyingFile;
+  private final MappedConcurrentFile underlyingFile;
 
-  FramedConcurrentFile(ConcurrentFile underlyingFile) {
+  FramedConcurrentFile(MappedConcurrentFile underlyingFile) {
     this.underlyingFile = underlyingFile;
   }
 
@@ -50,56 +50,111 @@ public class FramedConcurrentFile implements ConcurrentFile {
 
   @Override
   public int write(final byte[] srcBytes, final int srcOffset, final int srcLength) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + srcLength, (final AtomicBuffer buffer, final int offset, final int length) -> {
-      buffer.putBytes(offset + FRAME_HEADER_SIZE, srcBytes, srcOffset, srcLength);
-      buffer.putInt(offset, length);
-    });
+    final int length = FRAME_HEADER_SIZE + srcLength;
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcBytes, srcOffset, srcLength);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
   }
 
   @Override
   public int write(final DirectBuffer srcBuffer, final int srcOffset, final int srcLength) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + srcLength, (final AtomicBuffer buffer, final int offset, final int length) -> {
-      buffer.putBytes(offset + FRAME_HEADER_SIZE, srcBuffer, srcOffset, srcLength);
-      buffer.putInt(offset, length);
-    });
+    final int length = FRAME_HEADER_SIZE + srcLength;
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcBuffer, srcOffset, srcLength);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
   }
 
   @Override
   public int write(final ByteBuffer srcByteBuffer) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + srcByteBuffer.remaining(), (final AtomicBuffer buffer, final int offset, final int length) -> {
-      buffer.putBytes(offset + FRAME_HEADER_SIZE, srcByteBuffer, srcByteBuffer.position(), srcByteBuffer.remaining());
-      buffer.putInt(offset, length);
-    });
+    final int length = FRAME_HEADER_SIZE + srcByteBuffer.remaining();
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcByteBuffer, srcByteBuffer.position(), srcByteBuffer.remaining());
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
   }
 
   @Override
   public int writeAscii(final CharSequence srcCharSequence) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + srcCharSequence.length(), (final AtomicBuffer buffer, final int offset, final int length) -> {
-      for(int i = 0; i < srcCharSequence.length(); i++) {
-        final char c = srcCharSequence.charAt(i);
-        buffer.putByte(FRAME_HEADER_SIZE + offset + i, c > 127 ? (byte)'?' : (byte)c);
+    final int length = FRAME_HEADER_SIZE + srcCharSequence.length();
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        for(int i = 0; i < srcCharSequence.length(); i++) {
+          final char c = srcCharSequence.charAt(i);
+          getBuffer().putByte(FRAME_HEADER_SIZE + offset + i, c > 127 ? (byte)'?' : (byte)c);
+        }
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
       }
-      buffer.putInt(offset, length);
-    });
+    }
+    return offset;
   }
 
   @Override
   public int writeChars(final CharSequence srcCharSequence, final ByteOrder byteOrder) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + srcCharSequence.length() * 2, (final AtomicBuffer buffer, final int offset, final int length) -> {
-      for(int i = 0; i < srcCharSequence.length(); i++) {
-        buffer.putChar(FRAME_HEADER_SIZE + offset + (i * 2), srcCharSequence.charAt(i), byteOrder);
+    final int length = FRAME_HEADER_SIZE + srcCharSequence.length();
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        for(int i = 0; i < srcCharSequence.length(); i++) {
+          getBuffer().putChar(FRAME_HEADER_SIZE + offset + (i * 2), srcCharSequence.charAt(i), byteOrder);
+        }
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
       }
-      buffer.putInt(offset, length);
-    });
+    }
+    return offset;
   }
 
   @Override
   public int write(final int dataLength, final WriteFunction writeFunction) {
-    return underlyingFile.write(FRAME_HEADER_SIZE + dataLength, (final AtomicBuffer buffer, final int offset, final int length) -> {
-      writeFunction.write(buffer, offset + FRAME_HEADER_SIZE, dataLength);
-      buffer.putInt(offset, length);
-    });
+    final int length = FRAME_HEADER_SIZE + dataLength;
+    final int offset = reserve(length);
+    if(offset != NULL_OFFSET) {
+      try {
+        writeFunction.write(getBuffer(), offset + FRAME_HEADER_SIZE, dataLength);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
   }
 
+  @Override
+  public AtomicBuffer getBuffer() {
+    return underlyingFile.getBuffer();
+  }
 
+  @Override
+  public int reserve(int length) {
+    return underlyingFile.reserve(length);
+  }
+
+  @Override
+  public void wrote(int length) {
+    underlyingFile.wrote(length);
+  }
 }

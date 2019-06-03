@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author Eric Thill
  */
-class MultiProcessConcurrentFile implements ConcurrentFile {
+class MultiProcessConcurrentFile implements MappedConcurrentFile {
 
   public static final int HEADER_SIZE = 32;
 
@@ -126,41 +126,6 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
   @Override
   public File getFile() {
     return file;
-  }
-
-  private int reserve(int length) {
-    numLocalWrites.incrementAndGet();
-
-    long offset;
-    do {
-      offset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
-      if(offset >= fileSize) {
-        // offset exceeded capacity field, do not attempt to increment nextWriteOffset field, nothing more can ever be written
-        // no outside write cycle, increment local writes complete now
-        numLocalWritesComplete.incrementAndGet();
-        return NULL_OFFSET;
-      }
-    } while(!buffer.compareAndSetLong(OFFSET_NEXT_WRITE, offset, offset + length));
-
-    if(offset + length > fileSize) {
-      // first message that will not fit
-      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
-      wrote(length);
-      // set fileSize field
-      buffer.putLongVolatile(OFFSET_FILE_SIZE, offset);
-      return NULL_OFFSET;
-    }
-
-    // return offset to write bytes
-    return (int)offset;
-  }
-
-  private void wrote(long length) {
-    long lastVal;
-    do {
-      lastVal = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
-    } while(!buffer.compareAndSetLong(OFFSET_WRITE_COMPLETE, lastVal, lastVal + length));
-    numLocalWritesComplete.incrementAndGet();
   }
 
   @Override
@@ -259,6 +224,48 @@ class MultiProcessConcurrentFile implements ConcurrentFile {
     }
 
     return dstOffset;
+  }
+
+  @Override
+  public AtomicBuffer getBuffer() {
+    return buffer;
+  }
+
+  @Override
+  public int reserve(int length) {
+    numLocalWrites.incrementAndGet();
+
+    long offset;
+    do {
+      offset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
+      if(offset >= fileSize) {
+        // offset exceeded capacity field, do not attempt to increment nextWriteOffset field, nothing more can ever be written
+        // no outside write cycle, increment local writes complete now
+        numLocalWritesComplete.incrementAndGet();
+        return NULL_OFFSET;
+      }
+    } while(!buffer.compareAndSetLong(OFFSET_NEXT_WRITE, offset, offset + length));
+
+    if(offset + length > fileSize) {
+      // first message that will not fit
+      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
+      wrote(length);
+      // set fileSize field
+      buffer.putLongVolatile(OFFSET_FILE_SIZE, offset);
+      return NULL_OFFSET;
+    }
+
+    // return offset to write bytes
+    return (int)offset;
+  }
+
+  @Override
+  public void wrote(int length) {
+    long lastVal;
+    do {
+      lastVal = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
+    } while(!buffer.compareAndSetLong(OFFSET_WRITE_COMPLETE, lastVal, lastVal + length));
+    numLocalWritesComplete.incrementAndGet();
   }
 
 }

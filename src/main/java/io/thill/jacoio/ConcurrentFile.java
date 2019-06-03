@@ -38,16 +38,16 @@ public interface ConcurrentFile extends AutoCloseable {
   boolean isPending();
 
   /**
-   * Mark the getFile as finished, so no more writes can ever be performed. This will populate the fileSize field in the getFile header.
-   */
-  void finish();
-
-  /**
    * Check if all pending writes have completed and no more writes can ever be written
    *
    * @return true if no writes can ever be performed
    */
   boolean isFinished();
+
+  /**
+   * Mark the getFile as finished, so no more writes can ever be performed. This will populate the fileSize field in the getFile header.
+   */
+  void finish();
 
   /**
    * Get the underlying {@link File}

@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @author Eric Thill
  */
-class SingleProcessConcurrentFile implements ConcurrentFile {
+class SingleProcessConcurrentFile implements MappedConcurrentFile {
 
   static SingleProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
     if(file.exists())
@@ -89,38 +89,6 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
   public File getFile() {
     return file;
   }
-
-  private int reserve(int length) {
-    long offset;
-    do {
-      offset = nextWriteOffset.get();
-      if(offset >= fileSize) {
-        // offset exceeded capacity field, do not attempt to increment nextWriteOffset field, nothing more can ever be written
-        // no outside write cycle, increment local writes complete now
-        return NULL_OFFSET;
-      }
-    } while(!nextWriteOffset.compareAndSet(offset, offset + length));
-
-    if(offset + length > fileSize) {
-      // first message that will not fit
-      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
-      wrote(length);
-      // set final getFile size
-      finalFileSize.set(offset);
-      return NULL_OFFSET;
-    }
-
-    // return offset to write bytes
-    return (int)offset;
-  }
-
-  private void wrote(long length) {
-    long lastVal;
-    do {
-      lastVal = writeComplete.get();
-    } while(!writeComplete.compareAndSet(lastVal, lastVal + length));
-  }
-
 
   @Override
   public int write(final byte[] srcBytes, final int srcOffset, final int length) {
@@ -220,5 +188,42 @@ class SingleProcessConcurrentFile implements ConcurrentFile {
     return dstOffset;
   }
 
+  @Override
+  public AtomicBuffer getBuffer() {
+    return buffer;
+  }
+
+  @Override
+  public int reserve(int length) {
+    long offset;
+    do {
+      offset = nextWriteOffset.get();
+      if(offset >= fileSize) {
+        // offset exceeded capacity field, do not attempt to increment nextWriteOffset field, nothing more can ever be written
+        // no outside write cycle, increment local writes complete now
+        return NULL_OFFSET;
+      }
+    } while(!nextWriteOffset.compareAndSet(offset, offset + length));
+
+    if(offset + length > fileSize) {
+      // first message that will not fit
+      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
+      wrote(length);
+      // set final getFile size
+      finalFileSize.set(offset);
+      return NULL_OFFSET;
+    }
+
+    // return offset to write bytes
+    return (int)offset;
+  }
+
+  @Override
+  public void wrote(int length) {
+    long lastVal;
+    do {
+      lastVal = writeComplete.get();
+    } while(!writeComplete.compareAndSet(lastVal, lastVal + length));
+  }
 
 }

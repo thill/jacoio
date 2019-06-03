@@ -62,7 +62,7 @@ public class ConcurrentFileMapper {
     if(capacity <= 0)
       throw new IllegalArgumentException("capacity must be non-zero");
 
-    ConcurrentFile file;
+    MappedConcurrentFile file;
     if(multiProcess)
       file = MultiProcessConcurrentFile.map(location, capacity, fillWithZeros);
     else

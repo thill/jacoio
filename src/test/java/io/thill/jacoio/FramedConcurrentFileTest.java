@@ -23,7 +23,7 @@ public class FramedConcurrentFileTest extends SingleProcessConcurrentFileTest {
   @Override
   protected void createFile(int capacity, boolean fillWithZeros) throws Exception {
     super.createFile(capacity, fillWithZeros);
-    file = new FramedConcurrentFile(file);
+    file = new FramedConcurrentFile((MappedConcurrentFile)file);
   }
 
   @Override
