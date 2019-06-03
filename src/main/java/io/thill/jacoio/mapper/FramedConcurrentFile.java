@@ -8,7 +8,6 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 

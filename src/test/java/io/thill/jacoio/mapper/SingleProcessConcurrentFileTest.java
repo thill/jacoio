@@ -1,10 +1,7 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
-import io.thill.jacoio.function.ParametizedWriteFunction;
 import org.agrona.DirectBuffer;
-import org.agrona.MutableDirectBuffer;
-import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.After;
 import org.junit.Assert;
