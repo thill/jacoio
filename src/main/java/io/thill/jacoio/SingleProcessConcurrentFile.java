@@ -11,6 +11,7 @@
  */
 package io.thill.jacoio;
 
+import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
 import org.agrona.concurrent.AtomicBuffer;
@@ -226,4 +227,13 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
     } while(!writeComplete.compareAndSet(lastVal, lastVal + length));
   }
 
+  @Override
+  public int capacity() {
+    return (int)fileSize;
+  }
+
+  @Override
+  public boolean hasAvailableCapacity() {
+    return nextWriteOffset.get() < fileSize;
+  }
 }

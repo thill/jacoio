@@ -1,6 +1,6 @@
 package io.thill.jacoio;
 
-import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,14 +14,6 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  @After
-  public void cleanup() throws Exception {
-    if(file != null) {
-      file.close();
-      file = null;
-    }
-  }
-
   @Override
   protected void createFile(int capacity, boolean fillWithZeros) throws Exception {
     if(file != null)
@@ -30,7 +22,15 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     while(!underlyingFile.delete())
       Thread.sleep(10);
     logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
-    file = MultiProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
+
+    file = ConcurrentFile.map()
+            .location(underlyingFile)
+            .capacity(capacity)
+            .fillWithZeros(fillWithZeros)
+            .multiProcess(true)
+            .map();
+
+    Assert.assertEquals(MultiProcessConcurrentFile.class, file.getClass());
   }
 
   @Override

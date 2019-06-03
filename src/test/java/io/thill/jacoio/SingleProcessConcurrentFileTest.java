@@ -26,6 +26,8 @@ public class SingleProcessConcurrentFileTest {
   public void cleanup() throws Exception {
     if(file != null) {
       file.close();
+      logger.info("Deleting {}", file.getFile());
+      file.getFile().delete();
       file = null;
     }
   }
@@ -37,7 +39,15 @@ public class SingleProcessConcurrentFileTest {
     while(!underlyingFile.delete())
       Thread.sleep(10);
     logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
-    file = SingleProcessConcurrentFile.map(underlyingFile, capacity, fillWithZeros);
+
+    file = ConcurrentFile.map()
+            .location(underlyingFile)
+            .capacity(capacity)
+            .fillWithZeros(fillWithZeros)
+            .multiProcess(false)
+            .map();
+
+    Assert.assertEquals(SingleProcessConcurrentFile.class, file.getClass());
   }
 
   protected int startOffset() {
@@ -132,7 +142,7 @@ public class SingleProcessConcurrentFileTest {
 
   @Test
   public void testMultipleWritesExceedCapacity() throws Exception {
-    createFile(20 + frameHeaderSize()*3, false);
+    createFile(20 + frameHeaderSize() * 3, false);
 
     byte[] buffer1 = "buffer1".getBytes();
     int offset1 = file.write(buffer1, 0, buffer1.length);

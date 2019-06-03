@@ -11,9 +11,11 @@
  */
 package io.thill.jacoio;
 
+import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -64,7 +66,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param length    the number of bytes to write
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final byte[] srcBytes, final int srcOffset, final int length);
+  int write(final byte[] srcBytes, final int srcOffset, final int length) throws IOException;
 
   /**
    * Write the given buffer from the given offset to the given length
@@ -74,7 +76,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param length    the number of bytes to write
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final DirectBuffer srcBuffer, final int srcOffset, final int length);
+  int write(final DirectBuffer srcBuffer, final int srcOffset, final int length) throws IOException;
 
   /**
    * Write the given ByteBuffer from {@link ByteBuffer#position()} with length={@link ByteBuffer#remaining()}. The position of the {@link ByteBuffer} will not
@@ -83,7 +85,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param srcByteBuffer the source byte buffer
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final ByteBuffer srcByteBuffer);
+  int write(final ByteBuffer srcByteBuffer) throws IOException;
 
   /**
    * Write the given CharSequence as ascii characters
@@ -91,7 +93,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param srcCharSequence the source character sequence
    * @return the offset at which the characters were written, -1 if it could not fit
    */
-  int writeAscii(final CharSequence srcCharSequence);
+  int writeAscii(final CharSequence srcCharSequence) throws IOException;
 
   /**
    * Write the given CharSequence as 2-byte characters
@@ -100,7 +102,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param byteOrder       the destination byte-order
    * @return the offset at which the characters were written, -1 if it could not fit
    */
-  int writeChars(final CharSequence srcCharSequence, ByteOrder byteOrder);
+  int writeChars(final CharSequence srcCharSequence, ByteOrder byteOrder) throws IOException;
 
   /**
    * Write to the underlying buffer using the given {@link WriteFunction}
@@ -109,6 +111,6 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final int length, final WriteFunction writeFunction);
+  int write(final int length, final WriteFunction writeFunction) throws IOException;
 
 }

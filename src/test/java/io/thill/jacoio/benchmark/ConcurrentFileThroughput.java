@@ -3,6 +3,7 @@ package io.thill.jacoio.benchmark;
 import io.thill.jacoio.ConcurrentFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -115,24 +116,28 @@ public class ConcurrentFileThroughput {
     @Override
     public void run() {
       while(keepRunning) {
-        final ConcurrentFile curFile = ConcurrentFileThroughput.this.curFile;
-        final int offset = curFile.write(writeArray, 0, writeArray.length);
-        if(offset >= 0) {
-          totalWrites.incrementAndGet();
-        } else if(index == 0) {
-          final ConcurrentFile lastFile = curFile;
-          nextFile();
-          new Thread(() -> {
-            try {
-              while(curFile.isPending())
-                Thread.sleep(10);
-              lastFile.close();
-              while(!lastFile.getFile().delete())
-                Thread.sleep(10);
-            } catch(Throwable t) {
-              t.printStackTrace();
-            }
-          }).start();
+        try {
+          final ConcurrentFile curFile = ConcurrentFileThroughput.this.curFile;
+          final int offset = curFile.write(writeArray, 0, writeArray.length);
+          if(offset >= 0) {
+            totalWrites.incrementAndGet();
+          } else if(index == 0) {
+            final ConcurrentFile lastFile = curFile;
+            nextFile();
+            new Thread(() -> {
+              try {
+                while(curFile.isPending())
+                  Thread.sleep(10);
+                lastFile.close();
+                while(!lastFile.getFile().delete())
+                  Thread.sleep(10);
+              } catch(Throwable t) {
+                t.printStackTrace();
+              }
+            }).start();
+          }
+        } catch(IOException e) {
+          e.printStackTrace();
         }
       }
       stopped = true;

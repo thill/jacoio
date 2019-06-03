@@ -1,5 +1,6 @@
 package io.thill.jacoio;
 
+import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
@@ -156,5 +157,15 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   @Override
   public void wrote(int length) {
     underlyingFile.wrote(length);
+  }
+
+  @Override
+  public int capacity() {
+    return underlyingFile.capacity();
+  }
+
+  @Override
+  public boolean hasAvailableCapacity() {
+    return underlyingFile.hasAvailableCapacity();
   }
 }

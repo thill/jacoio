@@ -43,4 +43,18 @@ interface MappedConcurrentFile extends ConcurrentFile {
    */
   void wrote(int length);
 
+  /**
+   * Return the total write capacity of the file, not including any file headers
+   *
+   * @return the capacity
+   */
+  int capacity();
+
+  /**
+   * Check if there is any current write capacity
+   *
+   * @return true if there is write capacity, false otherwise.
+   */
+  boolean hasAvailableCapacity();
+
 }
