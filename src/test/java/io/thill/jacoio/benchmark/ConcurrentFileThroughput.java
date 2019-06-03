@@ -1,6 +1,9 @@
 package io.thill.jacoio.benchmark;
 
 import io.thill.jacoio.ConcurrentFile;
+import org.agrona.IoUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,51 +15,54 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class ConcurrentFileThroughput {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     final File directory = new File("target/benchmark");
-    directory.mkdirs();
-    new ConcurrentFileThroughput(directory, 1024 * 1024 * 128, 128, 10).execute(5, 10);
+    IoUtil.delete(directory, true);
+    new ConcurrentFileThroughput(directory, 1024 * 1024 * 128, 128, 10).execute(1, 10);
+    IoUtil.delete(directory, true);
   }
 
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final Random random = new Random();
-  private final File directory;
-  private final int fileSize;
   private final int writeSize;
   private final int runtimeSeconds;
-  private int fileNumber = 0;
-  private volatile ConcurrentFile curFile;
+  private final ConcurrentFile concurrentFile;
   private volatile boolean keepRunning;
 
-  public ConcurrentFileThroughput(File directory, int fileSize, int writeSize, int runtimeSeconds) {
-    this.directory = directory;
-    this.fileSize = fileSize;
+  public ConcurrentFileThroughput(File directory, int fileSize, int writeSize, int runtimeSeconds) throws IOException {
     this.writeSize = writeSize;
     this.runtimeSeconds = runtimeSeconds;
+    this.concurrentFile = ConcurrentFile.map()
+            .location(directory)
+            .capacity(fileSize)
+            .multiProcess(false)
+            .fillWithZeros(false)
+            .framed(false)
+            .roll(r -> r
+                    .enabled(true)
+                    .asyncClose(true)
+                    .fileNamePrefix("test-")
+                    .fileNameSuffix(".bin")
+                    .yieldOnAllocateContention(true)
+                    .fileCompleteFunction(f -> f.delete()))
+            .map();
   }
 
-  public void execute(final int startNumThreads, final int endNumThreads) {
+  public void execute(final int startNumThreads, final int endNumThreads) throws Exception {
     for(int numThreads = startNumThreads; numThreads <= endNumThreads; numThreads++) {
       execute(numThreads);
     }
+    concurrentFile.close();
   }
 
   public void execute(final int numThreads) {
     try {
       System.out.print("numThreads: " + numThreads);
 
-      // delete any existing files in the directory
-      for(File f : directory.listFiles()) {
-        while(!f.delete())
-          Thread.sleep(10);
-      }
-
       // create the writer threads
       List<WriterThread> writerThreads = new ArrayList<>();
       for(int i = 0; i < numThreads; i++)
         writerThreads.add(new WriterThread(i));
-
-      // create the first getFile to write
-      nextFile();
 
       // start the writer threads
       keepRunning = true;
@@ -73,13 +79,6 @@ public class ConcurrentFileThroughput {
           Thread.sleep(10);
       }
 
-      // delete the last getFile
-      while(curFile.isPending())
-        Thread.sleep(10);
-      curFile.close();
-      curFile.getFile().delete();
-      curFile = null;
-
       // aggregate results
       long totalWrites = 0;
       for(WriterThread writerThread : writerThreads)
@@ -89,15 +88,6 @@ public class ConcurrentFileThroughput {
       System.out.println(" - MB/second:  " + (totalWrites * writeSize) / runtimeSeconds / (1024.0 * 1024.0));
     } catch(Throwable t) {
       t.printStackTrace();
-    }
-  }
-
-  private void nextFile() {
-    try {
-      curFile = ConcurrentFile.map().multiProcess(false).location(new File(directory, Integer.toString(fileNumber++))).capacity(fileSize).map();
-    } catch(Throwable t) {
-      t.printStackTrace();
-      curFile = null;
     }
   }
 
@@ -117,24 +107,11 @@ public class ConcurrentFileThroughput {
     public void run() {
       while(keepRunning) {
         try {
-          final ConcurrentFile curFile = ConcurrentFileThroughput.this.curFile;
-          final int offset = curFile.write(writeArray, 0, writeArray.length);
+          final int offset = concurrentFile.write(writeArray, 0, writeArray.length);
           if(offset >= 0) {
             totalWrites.incrementAndGet();
-          } else if(index == 0) {
-            final ConcurrentFile lastFile = curFile;
-            nextFile();
-            new Thread(() -> {
-              try {
-                while(curFile.isPending())
-                  Thread.sleep(10);
-                lastFile.close();
-                while(!lastFile.getFile().delete())
-                  Thread.sleep(10);
-              } catch(Throwable t) {
-                t.printStackTrace();
-              }
-            }).start();
+          } else {
+            logger.error("Could not write");
           }
         } catch(IOException e) {
           e.printStackTrace();
