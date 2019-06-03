@@ -12,6 +12,7 @@
 package io.thill.jacoio;
 
 import io.thill.jacoio.function.WriteFunction;
+import io.thill.jacoio.mapper.ConcurrentFileMapper;
 import org.agrona.DirectBuffer;
 
 import java.io.File;

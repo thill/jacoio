@@ -9,8 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
-package io.thill.jacoio;
+package io.thill.jacoio.mapper;
 
+import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
@@ -23,91 +24,54 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.nio.file.StandardOpenOption;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Implements {@link ConcurrentFile} to provide multi-process writing using a 32-byte header for offset coordination. Multiple processes can write to the getFile
- * at one time, and it is able to re-open and continue appending to an existing getFile.
+ * Extends {@link ConcurrentFile} to provide single-process writing. There is no getFile header, and a getFile cannot be reopened after it has been closed.
  *
  * @author Eric Thill
  */
-class MultiProcessConcurrentFile implements MappedConcurrentFile {
+class SingleProcessConcurrentFile implements MappedConcurrentFile {
 
-  public static final int HEADER_SIZE = 32;
-
-  private static final int OFFSET_DATA_START = 0;
-  private static final int OFFSET_FILE_SIZE = 8;
-  private static final int OFFSET_NEXT_WRITE = 16;
-  private static final int OFFSET_WRITE_COMPLETE = 24;
-
-  static MultiProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
-    if(file.exists()) {
-      return mapExistingFile(file);
-    } else {
-      return mapNewFile(file, capacity, fillWithZeros);
-    }
-  }
-
-  private static MultiProcessConcurrentFile mapExistingFile(File file) throws IOException {
-    final FileChannel fileChannel = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE);
-    final int fileSize = (int)fileChannel.size();
-    final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
-    final AtomicBuffer buffer = new UnsafeBuffer();
-    buffer.wrap(address, fileSize);
-    return new MultiProcessConcurrentFile(file, fileChannel, buffer, fileSize);
-  }
-
-  private static MultiProcessConcurrentFile mapNewFile(File file, int capacity, boolean fillWithZeros) {
-    final int fileSize = HEADER_SIZE + capacity;
+  static SingleProcessConcurrentFile map(File file, int capacity, boolean fillWithZeros) throws IOException {
+    if(file.exists())
+      throw new IOException("File Exists. SingleProcessConcurrentFile cannot modify an existing getFile.");
+    final int fileSize = capacity;
     final FileChannel fileChannel = IoUtil.createEmptyFile(file, fileSize, fillWithZeros);
     final long address = IoUtil.map(fileChannel, MapMode.READ_WRITE, 0, fileSize);
     final AtomicBuffer buffer = new UnsafeBuffer();
     buffer.wrap(address, fileSize);
-
-    // ensure getFile header is filled with zeros
-    if(!fillWithZeros) {
-      buffer.putLongVolatile(OFFSET_DATA_START, 0);
-      buffer.putLongVolatile(OFFSET_FILE_SIZE, 0);
-      buffer.putLongVolatile(OFFSET_NEXT_WRITE, 0);
-      buffer.putLongVolatile(OFFSET_WRITE_COMPLETE, 0);
-    }
-
-    return new MultiProcessConcurrentFile(file, fileChannel, buffer, fileSize);
+    return new SingleProcessConcurrentFile(file, fileChannel, buffer, fileSize);
   }
 
-  private final AtomicLong numLocalWrites = new AtomicLong(0);
-  private final AtomicLong numLocalWritesComplete = new AtomicLong(0);
+  private final AtomicLong nextWriteOffset = new AtomicLong(0);
+  private final AtomicLong writeComplete = new AtomicLong(0);
+  private final AtomicLong finalFileSize = new AtomicLong(0);
   private final File file;
   private final FileChannel fileChannel;
   private final AtomicBuffer buffer;
   private final long fileSize;
 
-  MultiProcessConcurrentFile(File file, FileChannel fileChannel, AtomicBuffer buffer, int fileSize) {
+  SingleProcessConcurrentFile(File file, FileChannel fileChannel, AtomicBuffer buffer, int fileSize) {
     this.file = file;
     this.fileChannel = fileChannel;
     this.buffer = buffer;
     this.fileSize = fileSize;
-
-    // populate header as needed
-    if(buffer.compareAndSetLong(OFFSET_DATA_START, 0, HEADER_SIZE)) {
-      if(buffer.compareAndSetLong(OFFSET_NEXT_WRITE, 0, HEADER_SIZE)) {
-        buffer.compareAndSetLong(OFFSET_WRITE_COMPLETE, 0, HEADER_SIZE);
-      }
-    }
   }
 
   @Override
   public void close() throws IOException {
     if(isPending())
       throw new IOException("There are pending writes");
+    if(finalFileSize.get() > 0)
+      fileChannel.truncate(finalFileSize.get());
     fileChannel.close();
     IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
   }
 
   @Override
   public boolean isPending() {
-    return numLocalWritesComplete.get() != numLocalWrites.get();
+    return nextWriteOffset.get() != writeComplete.get();
   }
 
   @Override
@@ -118,10 +82,9 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
 
   @Override
   public boolean isFinished() {
-    final long writeComplete = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
-    final long nextOffset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
-    // check that writeComplete is caught up to nextOffset, that writeComplete exceeds the getFile size, and that the fileSize field is populated
-    return writeComplete == nextOffset && writeComplete >= fileSize && buffer.getLongVolatile(OFFSET_FILE_SIZE) > 0;
+    final long writeComplete = this.writeComplete.get();
+    final long nextOffset = this.nextWriteOffset.get();
+    return writeComplete == nextOffset && writeComplete >= fileSize && finalFileSize.get() > 0;
   }
 
   @Override
@@ -234,25 +197,22 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
 
   @Override
   public int reserve(int length) {
-    numLocalWrites.incrementAndGet();
-
     long offset;
     do {
-      offset = buffer.getLongVolatile(OFFSET_NEXT_WRITE);
+      offset = nextWriteOffset.get();
       if(offset >= fileSize) {
         // offset exceeded capacity field, do not attempt to increment nextWriteOffset field, nothing more can ever be written
         // no outside write cycle, increment local writes complete now
-        numLocalWritesComplete.incrementAndGet();
         return NULL_OFFSET;
       }
-    } while(!buffer.compareAndSetLong(OFFSET_NEXT_WRITE, offset, offset + length));
+    } while(!nextWriteOffset.compareAndSet(offset, offset + length));
 
     if(offset + length > fileSize) {
       // first message that will not fit
       // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
       wrote(length);
-      // set fileSize field
-      buffer.putLongVolatile(OFFSET_FILE_SIZE, offset);
+      // set final getFile size
+      finalFileSize.set(offset);
       return NULL_OFFSET;
     }
 
@@ -264,19 +224,17 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
   public void wrote(int length) {
     long lastVal;
     do {
-      lastVal = buffer.getLongVolatile(OFFSET_WRITE_COMPLETE);
-    } while(!buffer.compareAndSetLong(OFFSET_WRITE_COMPLETE, lastVal, lastVal + length));
-    numLocalWritesComplete.incrementAndGet();
+      lastVal = writeComplete.get();
+    } while(!writeComplete.compareAndSet(lastVal, lastVal + length));
   }
 
   @Override
   public int capacity() {
-    return (int)(fileSize - HEADER_SIZE);
+    return (int)fileSize;
   }
 
   @Override
   public boolean hasAvailableCapacity() {
-    return buffer.getLongVolatile(OFFSET_NEXT_WRITE) < fileSize;
+    return nextWriteOffset.get() < fileSize;
   }
-
 }

@@ -1,5 +1,6 @@
-package io.thill.jacoio;
+package io.thill.jacoio.mapper;
 
+import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
@@ -53,7 +54,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int write(final byte[] srcBytes, final int srcOffset, final int srcLength) {
     final int length = FRAME_HEADER_SIZE + srcLength;
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcBytes, srcOffset, srcLength);
         getBuffer().putInt(offset, length);
@@ -68,7 +69,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int write(final DirectBuffer srcBuffer, final int srcOffset, final int srcLength) {
     final int length = FRAME_HEADER_SIZE + srcLength;
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcBuffer, srcOffset, srcLength);
         getBuffer().putInt(offset, length);
@@ -83,7 +84,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int write(final ByteBuffer srcByteBuffer) {
     final int length = FRAME_HEADER_SIZE + srcByteBuffer.remaining();
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         getBuffer().putBytes(offset + FRAME_HEADER_SIZE, srcByteBuffer, srcByteBuffer.position(), srcByteBuffer.remaining());
         getBuffer().putInt(offset, length);
@@ -98,7 +99,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int writeAscii(final CharSequence srcCharSequence) {
     final int length = FRAME_HEADER_SIZE + srcCharSequence.length();
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         for(int i = 0; i < srcCharSequence.length(); i++) {
           final char c = srcCharSequence.charAt(i);
@@ -116,7 +117,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int writeChars(final CharSequence srcCharSequence, final ByteOrder byteOrder) {
     final int length = FRAME_HEADER_SIZE + srcCharSequence.length();
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         for(int i = 0; i < srcCharSequence.length(); i++) {
           getBuffer().putChar(FRAME_HEADER_SIZE + offset + (i * 2), srcCharSequence.charAt(i), byteOrder);
@@ -133,7 +134,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   public int write(final int dataLength, final WriteFunction writeFunction) {
     final int length = FRAME_HEADER_SIZE + dataLength;
     final int offset = reserve(length);
-    if(offset != NULL_OFFSET) {
+    if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         writeFunction.write(getBuffer(), offset + FRAME_HEADER_SIZE, dataLength);
         getBuffer().putInt(offset, length);

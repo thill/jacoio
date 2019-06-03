@@ -1,5 +1,6 @@
-package io.thill.jacoio;
+package io.thill.jacoio.mapper;
 
+import io.thill.jacoio.ConcurrentFile;
 import org.agrona.IoUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -12,8 +13,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-
-import static io.thill.jacoio.MultiProcessConcurrentFile.HEADER_SIZE;
 
 public class SingleProcessRollingConcurrentFileTest extends SingleProcessConcurrentFileTest {
 

@@ -1,4 +1,4 @@
-package io.thill.jacoio;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.function.FileCompleteFunction;
 
