@@ -1,8 +1,8 @@
 /**
  * Copyright (c) 2019 Eric Thill
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of the
- * License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of
+ * the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -11,6 +11,8 @@
  */
 package io.thill.jacoio;
 
+import io.thill.jacoio.function.BiParametizedWriteFunction;
+import io.thill.jacoio.function.ParametizedWriteFunction;
 import io.thill.jacoio.function.WriteFunction;
 import io.thill.jacoio.mapper.ConcurrentFileMapper;
 import org.agrona.DirectBuffer;
@@ -113,5 +115,26 @@ public interface ConcurrentFile extends AutoCloseable {
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
   int write(final int length, final WriteFunction writeFunction) throws IOException;
+
+  /**
+   * Write to the underlying buffer using the given {@link ParametizedWriteFunction} with 1 parameter to pass through.
+   *
+   * @param length        the total number of bytes that will be written by the {@link WriteFunction}
+   * @param writeFunction the write function
+   * @param parameter     the parameter to pass through to the write function
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  <P> int write(final int length, final ParametizedWriteFunction<P> writeFunction, P parameter) throws IOException;
+
+  /**
+   * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 2 parameters to pass through.
+   *
+   * @param length        the total number of bytes that will be written by the {@link WriteFunction}
+   * @param writeFunction the write function
+   * @param parameter1    the first parameter to pass through to the write function
+   * @param parameter2    the second parameter to pass through to the write function
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  <P1, P2> int write(final int length, final BiParametizedWriteFunction<P1, P2> writeFunction, P1 parameter1, P2 parameter2) throws IOException;
 
 }

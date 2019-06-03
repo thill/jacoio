@@ -1,7 +1,10 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
+import io.thill.jacoio.function.ParametizedWriteFunction;
 import org.agrona.DirectBuffer;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.AtomicBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.After;
 import org.junit.Assert;
@@ -97,12 +100,36 @@ public class SingleProcessConcurrentFileTest {
     createFile(128, false);
 
     byte[] writeBytes = "Hello World!".getBytes();
-    int offset = file.write(writeBytes.length, (buffer, off, length) -> {
-      buffer.putBytes(off, writeBytes);
-    });
+    int offset = file.write(writeBytes.length, (buffer, off, length) -> buffer.putBytes(off, writeBytes));
 
     Assert.assertEquals(startOffset(), offset);
     assertBytesAt(writeBytes, offset + frameHeaderSize());
+  }
+
+  @Test
+  public void testParametizedWriteFunction() throws Exception {
+    createFile(128, false);
+
+    byte[] writeBytes = "Hello World!".getBytes();
+    int offset = file.write(writeBytes.length, (buffer, offset1, length, parameter) -> buffer.putBytes(offset1, parameter), writeBytes);
+
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(writeBytes, offset + frameHeaderSize());
+  }
+
+  @Test
+  public void testBiParametizedWriteFunction() throws Exception {
+    createFile(128, false);
+
+    byte[] writeBytes = "Hello World!".getBytes();
+    int offset = file.write(writeBytes.length, (buffer, offset1, length, parameter1, parameter2) -> {
+      buffer.putInt(offset1, parameter1);
+      buffer.putBytes(offset1 + 4, parameter2);
+    }, 1000, writeBytes);
+
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(new byte[] { -24, 3, 0, 0 }, offset + frameHeaderSize());
+    assertBytesAt(writeBytes, offset + frameHeaderSize() + 4);
   }
 
   @Test
