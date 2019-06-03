@@ -155,7 +155,7 @@ public class ConcurrentFileMapper {
     private DateFormat dateFormat = DEFAULT_DATE_FORMAT;
     private boolean yieldOnAllocateContention = true;
     private boolean asyncClose = false;
-    private boolean preallocate = true;
+    private boolean preallocate = false;
     private long preallocateCheckMillis = 100;
     private FileCompleteFunction fileCompleteFunction;
 
@@ -254,7 +254,7 @@ public class ConcurrentFileMapper {
 
     /**
      * Flag to preallocate files asynchronously. This will result in a new thread being created that will attempt to stay one file ahead of allocation at all
-     * times.
+     * times. Defaults to false.
      *
      * @param preallocate
      * @return
