@@ -126,7 +126,7 @@ public class ConcurrentFileMapper {
       if(roll.fileProvider == null)
         roll.fileProvider = new DefaultFileProvider(location, roll.fileNamePrefix, roll.dateFormat, roll.fileNameSuffix);
       final SingleProcessRollingCoordinator coordinator = new SingleProcessRollingCoordinator(capacity, fillWithZeros, framed, roll.fileProvider,
-              roll.yieldOnAllocateContention, roll.asyncClose, roll.fileCompleteFunction);
+              roll.yieldOnAllocateContention, roll.asyncClose, roll.preallocate, roll.preallocateCheckMillis, roll.fileCompleteFunction);
       return new SingleProcessRollingConcurrentFile(coordinator);
     } else {
       MappedConcurrentFile file;
@@ -153,8 +153,10 @@ public class ConcurrentFileMapper {
     private String fileNamePrefix;
     private String fileNameSuffix;
     private DateFormat dateFormat = DEFAULT_DATE_FORMAT;
-    private boolean yieldOnAllocateContention;
-    private boolean asyncClose;
+    private boolean yieldOnAllocateContention = true;
+    private boolean asyncClose = false;
+    private boolean preallocate = true;
+    private long preallocateCheckMillis = 100;
     private FileCompleteFunction fileCompleteFunction;
 
     /**
@@ -228,7 +230,7 @@ public class ConcurrentFileMapper {
 
     /**
      * Indicates that contention on file rolling should result in the losing threads calling {@link Thread#yield()} while waiting for the contention to resolve.
-     * False will busy spin.
+     * False will busy spin. Defaults to true.
      *
      * @param yieldOnAllocateContention
      * @return
@@ -239,14 +241,39 @@ public class ConcurrentFileMapper {
     }
 
     /**
-     * Flag to close files asynchronously.  This will result in a new thread being created to close individual underlying {@link ConcurrentFile}s. False will
-     * close them inline.
+     * Flag to close files asynchronously. This will result in a new thread being created to close individual underlying {@link ConcurrentFile}s. False will
+     * close them inline. Defaults to false.
      *
      * @param asyncClose
      * @return
      */
     public RollParameters asyncClose(boolean asyncClose) {
       this.asyncClose = asyncClose;
+      return this;
+    }
+
+    /**
+     * Flag to preallocate files asynchronously. This will result in a new thread being created that will attempt to stay one file ahead of allocation at all
+     * times.
+     *
+     * @param preallocate
+     * @return
+     */
+    public RollParameters preallocate(boolean preallocate) {
+      this.preallocate = preallocate;
+      return this;
+    }
+
+    /**
+     * When {@link RollParameters#preallocate(boolean)} is set to true, this is the interval, measured in milliseconds, at which the preallocation thread will
+     * check if it should create new files. It should be sufficiently small enough where your application will never exceed the file capacity within the
+     * interval.  The default is 100 milliseconds.
+     *
+     * @param preallocateCheckMillis
+     * @return
+     */
+    public RollParameters preallocateCheckMillis(long preallocateCheckMillis) {
+      this.preallocateCheckMillis = preallocateCheckMillis;
       return this;
     }
 

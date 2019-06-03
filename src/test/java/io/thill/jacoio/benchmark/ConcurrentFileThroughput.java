@@ -44,7 +44,10 @@ public class ConcurrentFileThroughput {
                     .fileNamePrefix("test-")
                     .fileNameSuffix(".bin")
                     .yieldOnAllocateContention(true)
-                    .fileCompleteFunction(f -> f.delete()))
+                    .fileCompleteFunction(f -> f.delete())
+                    .preallocate(true)
+                    .preallocateCheckMillis(10)
+            )
             .map();
   }
 
