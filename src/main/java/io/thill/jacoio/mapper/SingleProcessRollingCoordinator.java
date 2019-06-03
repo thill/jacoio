@@ -1,11 +1,9 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.function.FileCompleteFunction;
+import io.thill.jacoio.function.FileProvider;
 
-import java.io.File;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,34 +12,25 @@ class SingleProcessRollingCoordinator implements AutoCloseable {
   private final AtomicBoolean allocating = new AtomicBoolean(false);
   private final AtomicReference<MappedConcurrentFile> curFileRef = new AtomicReference<>();
 
-  private final File parentDirectory;
   private final int fileCapacity;
   private final boolean fillWithZeros;
   private final boolean framed;
-  private final String namePrefix;
-  private final DateFormat dateFormat;
-  private final String nameSuffix;
+  private final FileProvider fileProvider;
   private final boolean asyncClose;
   private final boolean yieldOnAllocateContention;
   private final FileCompleteFunction fileCompleteFunction;
 
-  SingleProcessRollingCoordinator(final File parentDirectory,
-                                  final int fileCapacity,
+  SingleProcessRollingCoordinator(final int fileCapacity,
                                   final boolean fillWithZeros,
                                   final boolean framed,
-                                  final String namePrefix,
-                                  final DateFormat dateFormat,
-                                  final String nameSuffix,
+                                  final FileProvider fileProvider,
                                   final boolean yieldOnAllocateContention,
                                   final boolean asyncClose,
                                   final FileCompleteFunction fileCompleteFunction) throws IOException {
-    this.parentDirectory = parentDirectory;
     this.fileCapacity = fileCapacity;
     this.fillWithZeros = fillWithZeros;
     this.framed = framed;
-    this.namePrefix = namePrefix == null ? "" : namePrefix;
-    this.dateFormat = dateFormat;
-    this.nameSuffix = nameSuffix == null ? "" : nameSuffix;
+    this.fileProvider = fileProvider;
     this.yieldOnAllocateContention = yieldOnAllocateContention;
     this.asyncClose = asyncClose;
     this.fileCompleteFunction = fileCompleteFunction;
@@ -105,17 +94,11 @@ class SingleProcessRollingCoordinator implements AutoCloseable {
   }
 
   private MappedConcurrentFile nextFile() throws IOException {
-    int idx = 0;
-    File file;
-    do {
-      String name = namePrefix + (dateFormat == null ? "" : dateFormat.format(new Date(System.currentTimeMillis()))) + (idx == 0 ? "" : "-" + idx) + nameSuffix;
-      file = new File(parentDirectory, name);
-      idx++;
-    } while(file.exists());
-    MappedConcurrentFile nextFile = SingleProcessConcurrentFile.map(file, fileCapacity, fillWithZeros);
+    final MappedConcurrentFile nextFile = SingleProcessConcurrentFile.map(fileProvider.nextFile(), fileCapacity, fillWithZeros);
     if(framed)
-      nextFile = new FramedConcurrentFile(nextFile);
-    return nextFile;
+      return new FramedConcurrentFile(nextFile);
+    else
+      return nextFile;
   }
 
 }

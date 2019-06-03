@@ -12,7 +12,9 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
+import io.thill.jacoio.function.DefaultFileProvider;
 import io.thill.jacoio.function.FileCompleteFunction;
+import io.thill.jacoio.function.FileProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,35 +37,78 @@ public class ConcurrentFileMapper {
   private boolean multiProcess = false;
   private boolean framed = false;
 
+  /**
+   * Set the location of the {@link ConcurrentFile}. When rolling is enabled and {@link RollParameters#fileProvider(FileProvider)} is null, this will be used as
+   * the parent directory for created files.
+   *
+   * @param location
+   * @return
+   */
   public ConcurrentFileMapper location(File location) {
     this.location = location;
     return this;
   }
 
+  /**
+   * Set the capacity of the created file.
+   *
+   * @param capacity
+   * @return
+   */
   public ConcurrentFileMapper capacity(int capacity) {
     this.capacity = capacity;
     return this;
   }
 
+  /**
+   * Indicates if newly created files should be filled with zeros on creation. Default is true.
+   *
+   * @param fillWithZeros
+   * @return
+   */
   public ConcurrentFileMapper fillWithZeros(boolean fillWithZeros) {
     this.fillWithZeros = fillWithZeros;
     return this;
   }
 
+  /**
+   * Indicates if the underlying file should allow for multi-process writes. Setting this to true will crate a 32-byte header at the beginning of the file for
+   * atomic offset coordination. Defaults to false.
+   *
+   * @param multiProcess
+   * @return
+   */
   public ConcurrentFileMapper multiProcess(boolean multiProcess) {
     this.multiProcess = multiProcess;
     return this;
   }
 
+  /**
+   * Indicates if writes should be automatically framed using a 4-byte little endian header representing the write length for each and every write.
+   *
+   * @param framed
+   * @return
+   */
   public ConcurrentFileMapper framed(boolean framed) {
     this.framed = framed;
     return this;
   }
 
+  /**
+   * Get the underlying {@link RollParameters} to set prior to creating the file
+   *
+   * @return
+   */
   public RollParameters roll() {
     return roll;
   }
 
+  /**
+   * Functionally write to the underlying {@link RollParameters} using the given {@link RollParameterSetter}. Allows for builder code that's easier to read.
+   *
+   * @param setter
+   * @return
+   */
   public ConcurrentFileMapper roll(RollParameterSetter setter) {
     setter.set(roll);
     return this;
@@ -78,9 +123,10 @@ public class ConcurrentFileMapper {
       throw new IllegalArgumentException("multi-process roll is not currently supported");
 
     if(roll.enabled) {
-      location.mkdirs();
-      final SingleProcessRollingCoordinator coordinator = new SingleProcessRollingCoordinator(location, capacity, fillWithZeros, framed, roll.fileNamePrefix,
-              roll.dateFormat, roll.fileNameSuffix, roll.yieldOnAllocateContention, roll.asyncClose, roll.fileCompleteFunction);
+      if(roll.fileProvider == null)
+        roll.fileProvider = new DefaultFileProvider(location, roll.fileNamePrefix, roll.dateFormat, roll.fileNameSuffix);
+      final SingleProcessRollingCoordinator coordinator = new SingleProcessRollingCoordinator(capacity, fillWithZeros, framed, roll.fileProvider,
+              roll.yieldOnAllocateContention, roll.asyncClose, roll.fileCompleteFunction);
       return new SingleProcessRollingConcurrentFile(coordinator);
     } else {
       MappedConcurrentFile file;
@@ -103,6 +149,7 @@ public class ConcurrentFileMapper {
 
   public class RollParameters {
     private boolean enabled;
+    private FileProvider fileProvider;
     private String fileNamePrefix;
     private String fileNameSuffix;
     private DateFormat dateFormat = DEFAULT_DATE_FORMAT;
@@ -110,46 +157,115 @@ public class ConcurrentFileMapper {
     private boolean asyncClose;
     private FileCompleteFunction fileCompleteFunction;
 
+    /**
+     * Set true to enable automatic file rolling, false otherwise
+     *
+     * @param enabled
+     * @return
+     */
     public RollParameters enabled(boolean enabled) {
       this.enabled = enabled;
       return this;
     }
 
+    /**
+     * Set the {@link FileProvider} that will generate new files for file rolling. If none is provided, it will default to creating a {@link
+     * DefaultFileProvider} using the given {@link RollParameters#fileNamePrefix(String)}, {@link RollParameters#fileNameSuffix(String)}, and {@link
+     * RollParameters#dateFormat(DateFormat)}
+     *
+     * @param fileProvider
+     * @return
+     */
+    public RollParameters fileProvider(FileProvider fileProvider) {
+      this.fileProvider = fileProvider;
+      return this;
+    }
+
+    /**
+     * Set the filename prefix for created files. Only used when {@link RollParameters#fileProvider} is null.
+     *
+     * @param fileNamePrefix
+     * @return
+     */
     public RollParameters fileNamePrefix(String fileNamePrefix) {
       this.fileNamePrefix = fileNamePrefix;
       return this;
     }
 
+    /**
+     * Set the filename suffix for created files. Only used when {@link RollParameters#fileProvider} is null.
+     *
+     * @param fileNameSuffix
+     * @return
+     */
     public RollParameters fileNameSuffix(String fileNameSuffix) {
       this.fileNameSuffix = fileNameSuffix;
       return this;
     }
 
+    /**
+     * Set the filename date format for created files. Only used when {@link RollParameters#fileProvider} is null.
+     *
+     * @param dateFormat
+     * @return
+     */
     public RollParameters dateFormat(DateFormat dateFormat) {
       this.dateFormat = dateFormat;
       return this;
     }
 
+    /**
+     * Set the filename date format for created files by creating a {@link SimpleDateFormat} with the given value. Only used when {@link
+     * RollParameters#fileProvider} is null.
+     *
+     * @param dateFormat
+     * @return
+     */
     public RollParameters dateFormat(String dateFormat) {
       this.dateFormat = new SimpleDateFormat(dateFormat);
       return this;
     }
 
+    /**
+     * Indicates that contention on file rolling should result in the losing threads calling {@link Thread#yield()} while waiting for the contention to resolve.
+     * False will busy spin.
+     *
+     * @param yieldOnAllocateContention
+     * @return
+     */
     public RollParameters yieldOnAllocateContention(boolean yieldOnAllocateContention) {
       this.yieldOnAllocateContention = yieldOnAllocateContention;
       return this;
     }
 
+    /**
+     * Flag to close files asynchronously.  This will result in a new thread being created to close individual underlying {@link ConcurrentFile}s. False will
+     * close them inline.
+     *
+     * @param asyncClose
+     * @return
+     */
     public RollParameters asyncClose(boolean asyncClose) {
       this.asyncClose = asyncClose;
       return this;
     }
 
+    /**
+     * Optional function to run on every file after it has been completed and closed.
+     *
+     * @param fileCompleteFunction
+     * @return
+     */
     public RollParameters fileCompleteFunction(FileCompleteFunction fileCompleteFunction) {
       this.fileCompleteFunction = fileCompleteFunction;
       return this;
     }
 
+    /**
+     * Return the parent {@link ConcurrentFileMapper}
+     *
+     * @return
+     */
     public ConcurrentFileMapper mapper() {
       return ConcurrentFileMapper.this;
     }
