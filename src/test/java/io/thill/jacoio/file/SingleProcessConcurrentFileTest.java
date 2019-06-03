@@ -1,7 +1,6 @@
-package io.thill.jacoio.mapper;
+package io.thill.jacoio.file;
 
 import io.thill.jacoio.ConcurrentFile;
-import io.thill.jacoio.mapper.SingleProcessConcurrentFile;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.junit.After;

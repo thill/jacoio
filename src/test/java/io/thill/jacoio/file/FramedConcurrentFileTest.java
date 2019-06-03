@@ -1,4 +1,4 @@
-package io.thill.jacoio.mapper;
+package io.thill.jacoio.file;
 
 import io.thill.jacoio.ConcurrentFile;
 import org.junit.After;
