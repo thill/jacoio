@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.WriteFunction;
@@ -26,13 +26,13 @@ class SingleProcessRollingConcurrentFile implements ConcurrentFile {
 
   @Override
   public boolean isFinished() {
-    // never finished, always rolling to a new file
+    // never finished, always rolling to a new mapper
     return false;
   }
 
   @Override
   public void finish() {
-    // finish the current file, force a roll
+    // finish the current mapper, force a roll
     rollingCoordinator.currentFile().finish();
   }
 

@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import org.junit.After;
@@ -27,7 +27,7 @@ public class FramedConcurrentFileTest extends SingleProcessConcurrentFileTest {
     File underlyingFile = File.createTempFile(getClass().getSimpleName(), ".bin");
     while(!underlyingFile.delete())
       Thread.sleep(10);
-    logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
+    logger.info("Testing with mapper at {}", underlyingFile.getAbsolutePath());
 
     file = ConcurrentFile.map()
             .location(underlyingFile)

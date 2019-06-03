@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import org.junit.Assert;
@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.nio.ByteBuffer;
 
-import static io.thill.jacoio.file.MultiProcessConcurrentFile.HEADER_SIZE;
+import static io.thill.jacoio.mapper.MultiProcessConcurrentFile.HEADER_SIZE;
 
 public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileTest {
 
@@ -22,7 +22,7 @@ public class MultiProcessConcurrentFileTest extends SingleProcessConcurrentFileT
     File underlyingFile = File.createTempFile(getClass().getSimpleName(), ".bin");
     while(!underlyingFile.delete())
       Thread.sleep(10);
-    logger.info("Testing with file at {}", underlyingFile.getAbsolutePath());
+    logger.info("Testing with mapper at {}", underlyingFile.getAbsolutePath());
 
     file = ConcurrentFile.map()
             .location(underlyingFile)

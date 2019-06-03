@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.WriteFunction;

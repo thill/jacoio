@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import org.agrona.concurrent.AtomicBuffer;
@@ -22,9 +22,9 @@ import org.agrona.concurrent.AtomicBuffer;
 interface MappedConcurrentFile extends ConcurrentFile {
 
   /**
-   * Get the underlying file buffer
+   * Get the underlying mapper buffer
    *
-   * @return The underlying file buffer
+   * @return The underlying mapper buffer
    */
   AtomicBuffer getBuffer();
 
@@ -45,7 +45,7 @@ interface MappedConcurrentFile extends ConcurrentFile {
   void wrote(int length);
 
   /**
-   * Return the total write capacity of the file, not including any file headers
+   * Return the total write capacity of the mapper, not including any mapper headers
    *
    * @return the capacity
    */

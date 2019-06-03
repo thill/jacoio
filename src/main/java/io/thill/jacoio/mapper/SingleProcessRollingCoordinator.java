@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.function.FileCompleteFunction;
 
@@ -70,13 +70,13 @@ class SingleProcessRollingCoordinator implements AutoCloseable {
 
       try {
         if(curFileRef.get() == curFile) {
-          // expected current file is actual current file -> this thread wins, create file
+          // expected current mapper is actual current mapper -> this thread wins, create mapper
           close(curFile, asyncClose);
           curFile = nextFile();
           curFileRef.set(curFile);
           return curFile;
         } else {
-          // expected current file is not current file -> this thread did not win, return the updated curFileRef that has changed since the method was called
+          // expected current mapper is not current mapper -> this thread did not win, return the updated curFileRef that has changed since the method was called
           return curFileRef.get();
         }
       } finally {

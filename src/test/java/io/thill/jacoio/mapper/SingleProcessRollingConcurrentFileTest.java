@@ -1,4 +1,4 @@
-package io.thill.jacoio.file;
+package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import org.agrona.IoUtil;
@@ -70,24 +70,24 @@ public class SingleProcessRollingConcurrentFileTest extends SingleProcessConcurr
     // rolling implementation will put these values in 2 separate files
     createFile(20 + frameHeaderSize() * 3, false);
 
-    // these end up in the first file
+    // these end up in the first mapper
     byte[] buffer1 = "buffer1".getBytes();
     int offset1 = file.write(buffer1, 0, buffer1.length);
     byte[] buffer2 = "buffer2".getBytes();
     int offset2 = file.write(buffer2, 0, buffer2.length);
 
-    // test first file before roll
+    // test first mapper before roll
     Assert.assertEquals(startOffset(), offset1);
     Assert.assertEquals(startOffset() + frameHeaderSize() + buffer1.length, offset2);
     assertBytesAt(buffer1, offset1 + frameHeaderSize());
     assertBytesAt(buffer2, offset2 + frameHeaderSize());
 
-    // test end up in the second file
+    // test end up in the second mapper
     byte[] buffer3 = "buffer3".getBytes();
     int offset3 = file.write(buffer3, 0, buffer3.length);
     Assert.assertEquals(startOffset(), offset3);
 
-    // test second file after roll
+    // test second mapper after roll
     Assert.assertEquals(startOffset(), offset3);
     assertBytesAt(buffer3, offset3 + frameHeaderSize());
 
