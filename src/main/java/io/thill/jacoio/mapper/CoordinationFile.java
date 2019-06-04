@@ -93,21 +93,38 @@ class CoordinationFile implements AutoCloseable {
     lockFile();
     try {
       final String readContents = readContents();
-      if(readContents.equalsIgnoreCase(localContents)) {
+      if("".equals(readContents)) {
+        // the coordination file is brand new -> initialize it
+        String newContents;
+        if(preallocate) {
+          final File curFile = underlyingFileProvider.nextFile();
+          final File preallocatedFile = underlyingFileProvider.nextFile();
+          newContents = curFile.getAbsolutePath() + DELIMITER + preallocatedFile.getAbsolutePath();
+        } else {
+          final File curFile = underlyingFileProvider.nextFile();
+          newContents = curFile.getAbsolutePath();
+        }
+        writeContents(newContents);
+        return newContents;
+      } else if(readContents.equals(localContents)) {
         // file contents matches our internal state -> we need to update the coordination file
 
         // create the next file to use
         final File nextFile = underlyingFileProvider.nextFile();
         String newContents;
         if(preallocate) {
-          // preallocation is configured -> rotate preallocated file to curFile, and set preallocated file to nextFile
-          final String readContentsArr[] = readContents.split(DELIMITER);
+          final String readContentsArr[] = readContents.split(DELIMITER_SPLIT);
           final String readPreallocatedFilepath = readContentsArr.length > 1 ? readContentsArr[1] : "";
-          newContents = readPreallocatedFilepath + DELIMITER + nextFile.getAbsolutePath();
+          if(readContentsArr.length > 1) {
+            // preallocation is configured and preallocated file exists -> rotate preallocated file to curFile, and set preallocated file to nextFile
+            newContents = readPreallocatedFilepath + DELIMITER + nextFile.getAbsolutePath();
+          } else {
+            // preallocation is configured and preallocated file does not exist -> use nextFile as curFile and create a new preallocatedFile
+            newContents = nextFile.getAbsolutePath() + DELIMITER + underlyingFileProvider.nextFile();
+          }
         } else {
           // preallocation is disabled -> set the nextFile as curFile
           newContents = nextFile.getAbsolutePath();
-          writeContents(newContents);
         }
 
         writeContents(newContents);

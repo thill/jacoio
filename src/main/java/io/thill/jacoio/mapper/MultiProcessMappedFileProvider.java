@@ -117,7 +117,6 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
           // parse coordination file contents
           final File readCurFile = CoordinationFile.curFile(newCoordinationContents);
           final File readPreallocatedFile = CoordinationFile.preallocatedFile(newCoordinationContents);
-
           // set preallocation based on coordination file contents
           if(readPreallocatedFile == null) {
             // another thread won and does preallocate -> set our local preallocation to the new allocation to be swapped
