@@ -103,12 +103,14 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
 
   @Override
   public void close() throws IOException {
-    if(isPending())
-      throw new IOException("There are pending writes");
-    if(truncateSize.get() > 0)
-      fileChannel.truncate(truncateSize.get());
-    fileChannel.close();
-    IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
+    if(fileChannel.isOpen()) {
+      if(isPending())
+        throw new IOException("There are pending writes");
+      if(truncateSize.get() > 0)
+        fileChannel.truncate(truncateSize.get());
+      fileChannel.close();
+      IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
+    }
   }
 
   @Override

@@ -1,7 +1,19 @@
+/**
+ * Copyright (c) 2019 Eric Thill
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this getFile except in compliance with the License. You may obtain a copy of
+ * the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+ */
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.BiParametizedWriteFunction;
+import io.thill.jacoio.function.FileProvider;
 import io.thill.jacoio.function.ParametizedWriteFunction;
 import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
@@ -10,13 +22,20 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
-class SingleProcessRollingConcurrentFile implements ConcurrentFile {
+/**
+ * A {@link ConcurrentFile} implementation that continuously rolls to new files using the underlying {@link RollingCoordinator}
+ *
+ * @author Eric Thill
+ */
+class RollingConcurrentFile implements ConcurrentFile {
 
-  private final SingleProcessRollingCoordinator rollingCoordinator;
+  private final RollingCoordinator rollingCoordinator;
   private final int capacity;
 
-  SingleProcessRollingConcurrentFile(SingleProcessRollingCoordinator rollingCoordinator) throws IOException {
+  RollingConcurrentFile(RollingCoordinator rollingCoordinator) throws IOException {
     this.rollingCoordinator = rollingCoordinator;
     this.capacity = rollingCoordinator.currentFile().capacity();
   }
@@ -129,7 +148,7 @@ class SingleProcessRollingConcurrentFile implements ConcurrentFile {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     rollingCoordinator.close();
   }
 }

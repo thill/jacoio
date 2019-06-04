@@ -63,12 +63,14 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
 
   @Override
   public void close() throws IOException {
-    if(isPending())
-      throw new IOException("There are pending writes");
-    if(finalFileSize.get() > 0)
-      fileChannel.truncate(finalFileSize.get());
-    fileChannel.close();
-    IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
+    if(fileChannel.isOpen()) {
+      if(isPending())
+        throw new IOException("There are pending writes");
+      if(finalFileSize.get() > 0)
+        fileChannel.truncate(finalFileSize.get());
+      fileChannel.close();
+      IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
+    }
   }
 
   @Override
@@ -242,10 +244,10 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
 
     if(offset + length > fileSize) {
       // first message that will not fit
-      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
-      wrote(length);
       // set final getFile size
       finalFileSize.set(offset);
+      // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
+      wrote(length);
       return NULL_OFFSET;
     }
 

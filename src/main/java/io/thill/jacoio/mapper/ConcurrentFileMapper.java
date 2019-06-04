@@ -119,15 +119,23 @@ public class ConcurrentFileMapper {
       throw new IllegalArgumentException("location cannot be null");
     if(capacity <= 0)
       throw new IllegalArgumentException("capacity must be non-zero");
-    if(roll.enabled && multiProcess)
-      throw new IllegalArgumentException("multi-process roll is not currently supported");
 
     if(roll.enabled) {
       if(roll.fileProvider == null)
         roll.fileProvider = new DefaultFileProvider(location, roll.fileNamePrefix, roll.dateFormat, roll.fileNameSuffix);
-      final SingleProcessRollingCoordinator coordinator = new SingleProcessRollingCoordinator(capacity, fillWithZeros, framed, roll.fileProvider,
-              roll.yieldOnAllocateContention, roll.asyncClose, roll.preallocate, roll.preallocateCheckMillis, roll.fileCompleteFunction);
-      return new SingleProcessRollingConcurrentFile(coordinator);
+      MappedFileProvider mappedFileProvider;
+      if(multiProcess) {
+        if(roll.coordinationFile == null)
+          roll.coordinationFile = new File(location, "roll.coordinator");
+        mappedFileProvider = new MultiProcessMappedFileProvider(roll.coordinationFile, capacity, fillWithZeros, roll.fileProvider,
+                roll.yieldOnAllocateContention, roll.preallocate, roll.preallocateCheckMillis);
+      } else {
+        mappedFileProvider = new SingleProcessMappedFileProvider(capacity, fillWithZeros, roll.fileProvider, roll.yieldOnAllocateContention, roll.preallocate,
+                roll.preallocateCheckMillis);
+      }
+      final RollingCoordinator rollingCoordinator = new RollingCoordinator(mappedFileProvider, roll.yieldOnAllocateContention, roll.asyncClose,
+              roll.fileCompleteFunction);
+      return new RollingConcurrentFile(rollingCoordinator);
     } else {
       MappedConcurrentFile file;
       if(multiProcess)
@@ -158,6 +166,7 @@ public class ConcurrentFileMapper {
     private boolean preallocate = false;
     private long preallocateCheckMillis = 100;
     private FileCompleteFunction fileCompleteFunction;
+    private File coordinationFile;
 
     /**
      * Set true to enable automatic file rolling, false otherwise
@@ -285,6 +294,18 @@ public class ConcurrentFileMapper {
      */
     public RollParameters fileCompleteFunction(FileCompleteFunction fileCompleteFunction) {
       this.fileCompleteFunction = fileCompleteFunction;
+      return this;
+    }
+
+    /**
+     * Used to coordinate multi-process file rolling. Not used for single-process rolling. If this is not set, a file called "roll.coordinator" inside of the
+     * directory indicated by {@link ConcurrentFileMapper#location(File)} will be used.
+     *
+     * @param coordinationFile
+     * @return
+     */
+    public RollParameters coordinationFile(File coordinationFile) {
+      this.coordinationFile = coordinationFile;
       return this;
     }
 

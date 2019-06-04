@@ -137,4 +137,6 @@ public interface ConcurrentFile extends AutoCloseable {
    */
   <P1, P2> int write(final int length, final BiParametizedWriteFunction<P1, P2> writeFunction, P1 parameter1, P2 parameter2) throws IOException;
 
+  @Override
+  void close() throws IOException;
 }

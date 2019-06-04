@@ -8,6 +8,7 @@ import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -28,7 +29,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() throws IOException {
     underlyingFile.close();
   }
 
