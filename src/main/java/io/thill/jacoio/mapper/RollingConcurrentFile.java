@@ -123,21 +123,21 @@ class RollingConcurrentFile implements ConcurrentFile {
   }
 
   @Override
-  public <P> int write(final int length, final ParametizedWriteFunction<P> writeFunction, final P parameter) throws IOException {
+  public <P> int write(final int length, final P parameter, final ParametizedWriteFunction<P> writeFunction) throws IOException {
     checkLength(length);
     int offset;
     do {
-      offset = rollingCoordinator.fileForWrite().write(length, writeFunction, parameter);
+      offset = rollingCoordinator.fileForWrite().write(length, parameter, writeFunction);
     } while(offset == NULL_OFFSET);
     return offset;
   }
 
   @Override
-  public <P1, P2> int write(final int length, final BiParametizedWriteFunction<P1, P2> writeFunction, final P1 parameter1, final P2 parameter2) throws IOException {
+  public <P1, P2> int write(final int length, final P1 parameter1, final P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException {
     checkLength(length);
     int offset;
     do {
-      offset = rollingCoordinator.fileForWrite().write(length, writeFunction, parameter1, parameter2);
+      offset = rollingCoordinator.fileForWrite().write(length, parameter1, parameter2, writeFunction);
     } while(offset == NULL_OFFSET);
     return offset;
   }

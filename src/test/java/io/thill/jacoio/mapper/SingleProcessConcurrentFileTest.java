@@ -108,7 +108,7 @@ public class SingleProcessConcurrentFileTest {
     createFile(128, false);
 
     byte[] writeBytes = "Hello World!".getBytes();
-    int offset = file.write(writeBytes.length, (buffer, offset1, length, parameter) -> buffer.putBytes(offset1, parameter), writeBytes);
+    int offset = file.write(writeBytes.length, writeBytes, (buffer, offset1, length, parameter) -> buffer.putBytes(offset1, parameter));
 
     Assert.assertEquals(startOffset(), offset);
     assertBytesAt(writeBytes, offset + frameHeaderSize());
@@ -119,10 +119,10 @@ public class SingleProcessConcurrentFileTest {
     createFile(128, false);
 
     byte[] writeBytes = "Hello World!".getBytes();
-    int offset = file.write(writeBytes.length, (buffer, offset1, length, parameter1, parameter2) -> {
+    int offset = file.write(writeBytes.length, 1000, writeBytes, (buffer, offset1, length, parameter1, parameter2) -> {
       buffer.putInt(offset1, parameter1);
       buffer.putBytes(offset1 + 4, parameter2);
-    }, 1000, writeBytes);
+    });
 
     Assert.assertEquals(startOffset(), offset);
     assertBytesAt(new byte[] { -24, 3, 0, 0 }, offset + frameHeaderSize());

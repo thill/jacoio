@@ -120,22 +120,22 @@ public interface ConcurrentFile extends AutoCloseable {
    * Write to the underlying buffer using the given {@link ParametizedWriteFunction} with 1 parameter to pass through.
    *
    * @param length        the total number of bytes that will be written by the {@link WriteFunction}
-   * @param writeFunction the write function
    * @param parameter     the parameter to pass through to the write function
+   * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  <P> int write(final int length, final ParametizedWriteFunction<P> writeFunction, P parameter) throws IOException;
+  <P> int write(final int length, P parameter, final ParametizedWriteFunction<P> writeFunction) throws IOException;
 
   /**
    * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 2 parameters to pass through.
    *
    * @param length        the total number of bytes that will be written by the {@link WriteFunction}
-   * @param writeFunction the write function
    * @param parameter1    the first parameter to pass through to the write function
    * @param parameter2    the second parameter to pass through to the write function
+   * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  <P1, P2> int write(final int length, final BiParametizedWriteFunction<P1, P2> writeFunction, P1 parameter1, P2 parameter2) throws IOException;
+  <P1, P2> int write(final int length, P1 parameter1, P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException;
 
   @Override
   void close() throws IOException;

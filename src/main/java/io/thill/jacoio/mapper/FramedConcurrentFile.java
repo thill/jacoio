@@ -149,7 +149,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
-  public <P> int write(final int dataLength, final ParametizedWriteFunction<P> writeFunction, final P parameter) {
+  public <P> int write(final int dataLength, final P parameter, final ParametizedWriteFunction<P> writeFunction) {
     final int length = FRAME_HEADER_SIZE + dataLength;
     final int offset = reserve(length);
     if(offset != ConcurrentFile.NULL_OFFSET) {
@@ -164,8 +164,7 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
-  public <P1, P2> int write(final int dataLength, final BiParametizedWriteFunction<P1, P2> writeFunction,
-                            final P1 parameter1, final P2 parameter2) {
+  public <P1, P2> int write(final int dataLength, final P1 parameter1, final P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) {
     final int length = FRAME_HEADER_SIZE + dataLength;
     final int offset = reserve(length);
     if(offset != ConcurrentFile.NULL_OFFSET) {

@@ -195,7 +195,7 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
-  public <P> int write(final int length, final ParametizedWriteFunction<P> writeFunction, final P parameter) {
+  public <P> int write(final int length, final P parameter, final ParametizedWriteFunction<P> writeFunction) {
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
       return NULL_OFFSET;
@@ -210,8 +210,7 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
-  public <P1, P2> int write(final int length, final BiParametizedWriteFunction<P1, P2> writeFunction,
-                            final P1 parameter1, final P2 parameter2) {
+  public <P1, P2> int write(final int length, final P1 parameter1, final P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) {
     final int dstOffset = reserve(length);
     if(dstOffset < 0)
       return NULL_OFFSET;
