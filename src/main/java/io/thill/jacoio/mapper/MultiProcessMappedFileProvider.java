@@ -16,6 +16,7 @@ import io.thill.jacoio.function.FileProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -24,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Eric Thill
  */
 class MultiProcessMappedFileProvider implements MappedFileProvider {
+
+  private static final AtomicLong THREADNAME_INSTANCE = new AtomicLong();
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final AtomicReference<String> curCoordinationContents = new AtomicReference<>();
@@ -36,6 +39,7 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
   private final boolean yieldOnAllocateContention;
   private final boolean preallocate;
   private final long preallocateCheckMillis;
+  private final Thread preallocateThread;
 
   MultiProcessMappedFileProvider(final File coordinationFile,
                                  final int fileCapacity,
@@ -60,16 +64,26 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
       this.preallocatedFileRef.set(mapFile(initialPreallocatedFile));
 
     if(preallocate) {
-      new Thread(this::preallocateLoop, getClass().getSimpleName() + "-Preallocator").start();
+      preallocateThread = new Thread(this::preallocateLoop, getClass().getSimpleName() + "-Preallocator-" + THREADNAME_INSTANCE.getAndIncrement());
+      preallocateThread.start();
+    } else {
+      preallocateThread = null;
     }
   }
 
   @Override
   public void close() throws IOException {
     keepRunning.set(false);
-    final MappedConcurrentFile preallocatedFile = preallocatedFileRef.getAndSet(null);
-    if(preallocatedFile != null) {
-      preallocatedFile.close();
+    if(preallocate) {
+      // kill the preallocation thread now
+      preallocateThread.interrupt();
+
+      // close any reference to the preallocated file
+      final MappedConcurrentFile preallocatedFile = preallocatedFileRef.getAndSet(null);
+      if(preallocatedFile != null) {
+        preallocatedFile.close();
+        // don't delete the file, since another process may have started using it
+      }
     }
   }
 
@@ -132,7 +146,9 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
           Thread.sleep(preallocateCheckMillis);
         }
       } catch(Throwable t) {
-        t.printStackTrace();
+        if(keepRunning.get()) {
+          t.printStackTrace();
+        }
       }
     }
   }

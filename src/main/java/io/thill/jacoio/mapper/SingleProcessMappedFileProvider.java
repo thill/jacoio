@@ -16,6 +16,7 @@ import io.thill.jacoio.function.FileProvider;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -24,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Eric Thill
  */
 class SingleProcessMappedFileProvider implements MappedFileProvider {
+
+  private static final AtomicLong THREADNAME_INSTANCE = new AtomicLong();
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   private final AtomicReference<MappedConcurrentFile> curFileRef = new AtomicReference<>();
@@ -35,6 +38,7 @@ class SingleProcessMappedFileProvider implements MappedFileProvider {
   private final boolean yieldOnAllocateContention;
   private final boolean preallocate;
   private final long preallocateCheckMillis;
+  private final Thread preallocateThread;
 
   SingleProcessMappedFileProvider(final int fileCapacity,
                                   final boolean fillWithZeros,
@@ -49,19 +53,28 @@ class SingleProcessMappedFileProvider implements MappedFileProvider {
     this.preallocate = preallocate;
     this.preallocateCheckMillis = preallocateCheckMillis;
 
-    this.curFileRef.set(mapFile(underlyingFileProvider.nextFile()));
-
     if(preallocate) {
-      new Thread(this::preallocateLoop, getClass().getSimpleName() + "-Preallocator").start();
+      preallocateThread = new Thread(this::preallocateLoop, getClass().getSimpleName() + "-Preallocator-" + THREADNAME_INSTANCE.getAndIncrement());
+      preallocateThread.start();
+    } else {
+      preallocateThread = null;
     }
   }
 
   @Override
   public void close() throws IOException {
     keepRunning.set(false);
-    final MappedConcurrentFile preallocatedFile = preallocatedFileRef.getAndSet(null);
-    if(preallocatedFile != null) {
-      preallocatedFile.close();
+    if(preallocate) {
+      // kill the preallocate thread immediately
+      preallocateThread.interrupt();
+
+      // delete the preallocated file if it exists
+      final MappedConcurrentFile preallocatedFile = preallocatedFileRef.getAndSet(null);
+      if(preallocatedFile != null) {
+        preallocatedFile.close();
+        // preallocated file was never used. delete it.
+        preallocatedFile.getFile().delete();
+      }
     }
   }
 
@@ -90,17 +103,25 @@ class SingleProcessMappedFileProvider implements MappedFileProvider {
   }
 
   private void preallocateLoop() {
-    while(keepRunning.get()) {
-      try {
+    try {
+      while(keepRunning.get()) {
         if(preallocatedFileRef.get() == null) {
-          final MappedConcurrentFile nextFile = mapFile(underlyingFileProvider.nextFile());
-          preallocatedFileRef.set(nextFile);
+          final File file = underlyingFileProvider.nextFile();
+          try {
+            final MappedConcurrentFile nextFile = mapFile(file);
+            preallocatedFileRef.set(nextFile);
+          } catch(Throwable t) {
+            if(keepRunning.get()) {
+              t.printStackTrace();
+            }
+            file.delete();
+          }
         } else {
           Thread.sleep(preallocateCheckMillis);
         }
-      } catch(Throwable t) {
-        t.printStackTrace();
       }
+    } catch(InterruptedException e) {
+      // ignore
     }
   }
 

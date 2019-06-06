@@ -16,6 +16,7 @@ import io.thill.jacoio.function.FileProvider;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -25,9 +26,10 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 class RollingCoordinator implements AutoCloseable {
 
+  private static final AtomicLong THREADNAME_INSTANCE = new AtomicLong();
+
   private final AtomicBoolean allocating = new AtomicBoolean(false);
   private final AtomicReference<MappedConcurrentFile> curFileRef = new AtomicReference<>();
-  private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   private final MappedFileProvider mappedFileProvider;
   private final boolean asyncClose;
@@ -46,8 +48,8 @@ class RollingCoordinator implements AutoCloseable {
   }
 
   @Override
-  public void close() {
-    keepRunning.set(false);
+  public void close() throws IOException {
+    mappedFileProvider.close();
     close(currentFile(), false);
   }
 
@@ -97,15 +99,15 @@ class RollingCoordinator implements AutoCloseable {
           if(yieldOnAllocateContention)
             Thread.yield();
         }
-        concurrentFile.close();
         if(fileCompleteFunction != null)
-          fileCompleteFunction.onComplete(concurrentFile.getFile());
+          fileCompleteFunction.onComplete(concurrentFile);
+        concurrentFile.close();
       } catch(Throwable t) {
         t.printStackTrace();
       }
     };
     if(async) {
-      new Thread(closeTask, getClass().getSimpleName() + "-Close").start();
+      new Thread(closeTask, getClass().getSimpleName() + "-Close-" + THREADNAME_INSTANCE.getAndIncrement()).start();
     } else {
       closeTask.run();
     }

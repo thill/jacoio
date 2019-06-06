@@ -11,9 +11,9 @@
  */
 package io.thill.jacoio.function;
 
-import java.io.File;
+import io.thill.jacoio.ConcurrentFile;
 
 @FunctionalInterface
 public interface FileCompleteFunction {
-  void onComplete(File file);
+  void onComplete(ConcurrentFile concurrentFile);
 }

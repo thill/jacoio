@@ -49,7 +49,7 @@ public class MultiProcessRollingConcurrentFileTest extends SingleProcessRollingC
                     .fileNamePrefix("test-")
                     .fileNameSuffix(".bin")
                     .asyncClose(false)
-                    .fileCompleteFunction(f -> logger.info("Complete: {}", f.getAbsolutePath()))
+                    .fileCompleteFunction(f -> logger.info("Complete: {}", f.getFile().getAbsolutePath()))
                     .yieldOnAllocateContention(true)
             )
             .map();

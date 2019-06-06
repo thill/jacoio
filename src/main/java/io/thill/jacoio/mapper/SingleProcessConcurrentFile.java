@@ -48,7 +48,7 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
 
   private final AtomicLong nextWriteOffset = new AtomicLong(0);
   private final AtomicLong writeComplete = new AtomicLong(0);
-  private final AtomicLong finalFileSize = new AtomicLong(0);
+  private final AtomicLong finalFileSize = new AtomicLong(-1);
   private final File file;
   private final FileChannel fileChannel;
   private final AtomicBuffer buffer;
@@ -66,7 +66,7 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
     if(fileChannel.isOpen()) {
       if(isPending())
         throw new IOException("There are pending writes");
-      if(finalFileSize.get() > 0)
+      if(finalFileSize.get() >= 0)
         fileChannel.truncate(finalFileSize.get());
       fileChannel.close();
       IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);

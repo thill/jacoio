@@ -106,7 +106,7 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
     if(fileChannel.isOpen()) {
       if(isPending())
         throw new IOException("There are pending writes");
-      if(truncateSize.get() > 0)
+      if(truncateSize.get() >= 0)
         fileChannel.truncate(truncateSize.get());
       fileChannel.close();
       IoUtil.unmap(fileChannel, buffer.addressOffset(), fileSize);
@@ -291,7 +291,7 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
       // increment writeComplete so it will still eventually match nextWriteOffset at exceeded capacity value
       wrote(length);
       // set this instance to do the truncation since it did the last write
-      truncateSize.set(fileSize);
+      truncateSize.set(offset);
       // set fileSize field
       buffer.putLongVolatile(OFFSET_FILE_SIZE, offset);
       return NULL_OFFSET;

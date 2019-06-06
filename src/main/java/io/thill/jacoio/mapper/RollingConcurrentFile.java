@@ -148,7 +148,7 @@ class RollingConcurrentFile implements ConcurrentFile {
   }
 
   @Override
-  public void close() {
+  public void close() throws IOException {
     rollingCoordinator.close();
   }
 }
