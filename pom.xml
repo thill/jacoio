@@ -56,6 +56,7 @@
 
     <modules>
         <module>jacoio</module>
+        <module>jacoio-slf4j</module>
     </modules>
 
     <build>

@@ -8,10 +8,10 @@
       <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jacoio</artifactId>
+    <artifactId>jacoio-slf4j</artifactId>
 
-    <name>jacoio</name>
-    <description>Lock-Free, Multi-Process, Concurrent File I/O for Java</description>
+    <name>jacoio-slf4j</name>
+    <description>SLF4j binding that uses jacoio for Lock-Free, Multi-Process, Concurrent Logging</description>
     <url>https://github.com/thillio/jacoio</url>
 
     <licenses>
@@ -55,21 +55,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${version.slf4j}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.agrona</groupId>
-            <artifactId>agrona</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${version.slf4j}</version>
-            <scope>test</scope>
+            <groupId>io.thill.jacoio</groupId>
+            <artifactId>jacoio</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
