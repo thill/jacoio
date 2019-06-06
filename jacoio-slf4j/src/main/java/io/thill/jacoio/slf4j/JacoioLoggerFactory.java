@@ -55,7 +55,6 @@ public class JacoioLoggerFactory implements ILoggerFactory {
               .multiProcess(false)
               .roll(r -> r
                       .enabled(true)
-                      .preallocate(false)
                       .asyncClose(true)
                       .preallocate(preallocate)
                       .fileNamePrefix(filenamePrefix)
