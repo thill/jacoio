@@ -12,10 +12,7 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
-import io.thill.jacoio.function.BiParametizedWriteFunction;
-import io.thill.jacoio.function.FileProvider;
-import io.thill.jacoio.function.ParametizedWriteFunction;
-import io.thill.jacoio.function.WriteFunction;
+import io.thill.jacoio.function.*;
 import org.agrona.DirectBuffer;
 
 import java.io.File;
@@ -138,6 +135,16 @@ class RollingConcurrentFile implements ConcurrentFile {
     int offset;
     do {
       offset = rollingCoordinator.fileForWrite().write(length, parameter1, parameter2, writeFunction);
+    } while(offset == NULL_OFFSET);
+    return offset;
+  }
+
+  @Override
+  public <P1, P2, P3> int write(final int length, final P1 parameter1, final P2 parameter2, P3 parameter3, final TriParametizedWriteFunction<P1, P2, P3> writeFunction) throws IOException {
+    checkLength(length);
+    int offset;
+    do {
+      offset = rollingCoordinator.fileForWrite().write(length, parameter1, parameter2, parameter3, writeFunction);
     } while(offset == NULL_OFFSET);
     return offset;
   }

@@ -14,6 +14,7 @@ package io.thill.jacoio.mapper;
 import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.BiParametizedWriteFunction;
 import io.thill.jacoio.function.ParametizedWriteFunction;
+import io.thill.jacoio.function.TriParametizedWriteFunction;
 import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
@@ -258,6 +259,21 @@ class MultiProcessConcurrentFile implements MappedConcurrentFile {
 
     try {
       writeFunction.write(buffer, dstOffset, length, parameter1, parameter2);
+    } finally {
+      wrote(length);
+    }
+
+    return dstOffset;
+  }
+
+  @Override
+  public <P1, P2, P3> int write(final int length, final P1 parameter1, final P2 parameter2, P3 parameter3, final TriParametizedWriteFunction<P1, P2, P3> writeFunction) {
+    final int dstOffset = reserve(length);
+    if(dstOffset < 0)
+      return NULL_OFFSET;
+
+    try {
+      writeFunction.write(buffer, dstOffset, length, parameter1, parameter2, parameter3);
     } finally {
       wrote(length);
     }

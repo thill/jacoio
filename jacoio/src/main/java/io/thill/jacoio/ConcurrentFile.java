@@ -13,6 +13,7 @@ package io.thill.jacoio;
 
 import io.thill.jacoio.function.BiParametizedWriteFunction;
 import io.thill.jacoio.function.ParametizedWriteFunction;
+import io.thill.jacoio.function.TriParametizedWriteFunction;
 import io.thill.jacoio.function.WriteFunction;
 import io.thill.jacoio.mapper.ConcurrentFileMapper;
 import org.agrona.DirectBuffer;
@@ -136,6 +137,18 @@ public interface ConcurrentFile extends AutoCloseable {
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
   <P1, P2> int write(final int length, P1 parameter1, P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException;
+
+  /**
+   * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 2 parameters to pass through.
+   *
+   * @param length        the total number of bytes that will be written by the {@link WriteFunction}
+   * @param parameter1    the first parameter to pass through to the write function
+   * @param parameter2    the second parameter to pass through to the write function
+   * @param parameter3    the third parameter to pass through to the write function
+   * @param writeFunction the write function
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  <P1, P2, P3> int write(final int length, P1 parameter1, P2 parameter2, P3 parameter3, final TriParametizedWriteFunction<P1, P2, P3> writeFunction) throws IOException;
 
   @Override
   void close() throws IOException;

@@ -3,6 +3,7 @@ package io.thill.jacoio.mapper;
 import io.thill.jacoio.ConcurrentFile;
 import io.thill.jacoio.function.BiParametizedWriteFunction;
 import io.thill.jacoio.function.ParametizedWriteFunction;
+import io.thill.jacoio.function.TriParametizedWriteFunction;
 import io.thill.jacoio.function.WriteFunction;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
@@ -170,6 +171,21 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
     if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         writeFunction.write(getBuffer(), offset + FRAME_HEADER_SIZE, dataLength, parameter1, parameter2);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
+  }
+
+  @Override
+  public <P1, P2, P3> int write(final int dataLength, final P1 parameter1, final P2 parameter2, P3 parameter3, final TriParametizedWriteFunction<P1, P2, P3> writeFunction) {
+    final int length = FRAME_HEADER_SIZE + dataLength;
+    final int offset = reserve(length);
+    if(offset != ConcurrentFile.NULL_OFFSET) {
+      try {
+        writeFunction.write(getBuffer(), offset + FRAME_HEADER_SIZE, dataLength, parameter1, parameter2, parameter3);
         getBuffer().putInt(offset, length);
       } finally {
         wrote(length);
