@@ -139,7 +139,7 @@ public interface ConcurrentFile extends AutoCloseable {
   <P1, P2> int write(final int length, P1 parameter1, P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException;
 
   /**
-   * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 2 parameters to pass through.
+   * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 3 parameters to pass through.
    *
    * @param length        the total number of bytes that will be written by the {@link WriteFunction}
    * @param parameter1    the first parameter to pass through to the write function
