@@ -241,6 +241,76 @@ class SingleProcessConcurrentFile implements MappedConcurrentFile {
   }
 
   @Override
+  public int writeLong(final long value, final ByteOrder byteOrder) {
+    final int length = 8;
+    final int dstOffset = reserve(length);
+    if(dstOffset < 0)
+      return NULL_OFFSET;
+
+    try {
+      buffer.putLong(dstOffset, value, byteOrder);
+    } finally {
+      wrote(length);
+    }
+
+    return dstOffset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final ByteOrder byteOrder) {
+    final int length = 16;
+    final int dstOffset = reserve(length);
+    if(dstOffset < 0)
+      return NULL_OFFSET;
+
+    try {
+      buffer.putLong(dstOffset, value1, byteOrder);
+      buffer.putLong(dstOffset + 8, value2, byteOrder);
+    } finally {
+      wrote(length);
+    }
+
+    return dstOffset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final long value3, final ByteOrder byteOrder) {
+    final int length = 24;
+    final int dstOffset = reserve(length);
+    if(dstOffset < 0)
+      return NULL_OFFSET;
+
+    try {
+      buffer.putLong(dstOffset, value1, byteOrder);
+      buffer.putLong(dstOffset + 8, value2, byteOrder);
+      buffer.putLong(dstOffset + 16, value3, byteOrder);
+    } finally {
+      wrote(length);
+    }
+
+    return dstOffset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final long value3, final long value4, final ByteOrder byteOrder) {
+    final int length = 32;
+    final int dstOffset = reserve(length);
+    if(dstOffset < 0)
+      return NULL_OFFSET;
+
+    try {
+      buffer.putLong(dstOffset, value1, byteOrder);
+      buffer.putLong(dstOffset + 8, value2, byteOrder);
+      buffer.putLong(dstOffset + 16, value3, byteOrder);
+      buffer.putLong(dstOffset + 24, value4, byteOrder);
+    } finally {
+      wrote(length);
+    }
+
+    return dstOffset;
+  }
+
+  @Override
   public AtomicBuffer getBuffer() {
     return buffer;
   }

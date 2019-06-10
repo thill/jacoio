@@ -1,10 +1,7 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
-import io.thill.jacoio.function.BiParametizedWriteFunction;
-import io.thill.jacoio.function.ParametizedWriteFunction;
-import io.thill.jacoio.function.TriParametizedWriteFunction;
-import io.thill.jacoio.function.WriteFunction;
+import io.thill.jacoio.function.*;
 import org.agrona.DirectBuffer;
 import org.agrona.concurrent.AtomicBuffer;
 
@@ -15,8 +12,8 @@ import java.nio.ByteOrder;
 
 /**
  * An implementation of {@link ConcurrentFile} that wraps an underlying {@link ConcurrentFile} to provide write framing. Each write will be prepended with a
- * 32-bit length field. The length field is populated after the corresponding write. This allows concurrent readers to be able to read the getFile by waiting for
- * the length field of each frame to be populated before reading the corresponding data.
+ * 32-bit length field. The length field is populated after the corresponding write. This allows concurrent readers to be able to read the getFile by waiting
+ * for the length field of each frame to be populated before reading the corresponding data.
  *
  * @author Eric Thill
  */
@@ -186,6 +183,73 @@ public class FramedConcurrentFile implements MappedConcurrentFile {
     if(offset != ConcurrentFile.NULL_OFFSET) {
       try {
         writeFunction.write(getBuffer(), offset + FRAME_HEADER_SIZE, dataLength, parameter1, parameter2, parameter3);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
+  }
+
+  @Override
+  public int writeLong(final long value, final ByteOrder byteOrder) {
+    final int length = FRAME_HEADER_SIZE + 8;
+    final int offset = reserve(length);
+    if(offset != ConcurrentFile.NULL_OFFSET) {
+      try {
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE, value, byteOrder);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final ByteOrder byteOrder) {
+    final int length = FRAME_HEADER_SIZE + 16;
+    final int offset = reserve(length);
+    if(offset != ConcurrentFile.NULL_OFFSET) {
+
+      try {
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE, value1, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 8, value2, byteOrder);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final long value3, final ByteOrder byteOrder) {
+    final int length = FRAME_HEADER_SIZE + 16;
+    final int offset = reserve(length);
+    if(offset != ConcurrentFile.NULL_OFFSET) {
+      try {
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE, value1, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 8, value2, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 16, value3, byteOrder);
+        getBuffer().putInt(offset, length);
+      } finally {
+        wrote(length);
+      }
+    }
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(final long value1, final long value2, final long value3, final long value4, final ByteOrder byteOrder) {
+    final int length = FRAME_HEADER_SIZE + 16;
+    final int offset = reserve(length);
+    if(offset != ConcurrentFile.NULL_OFFSET) {
+      try {
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE, value1, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 8, value2, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 16, value3, byteOrder);
+        getBuffer().putLong(offset + FRAME_HEADER_SIZE + 24, value4, byteOrder);
         getBuffer().putInt(offset, length);
       } finally {
         wrote(length);

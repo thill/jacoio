@@ -203,6 +203,38 @@ public class SingleProcessConcurrentFileTest {
     assertBytesAt(writeBytes, offset + frameHeaderSize());
   }
 
+  @Test
+  public void testWriteLong() throws Exception {
+    createFile(128 + frameHeaderSize(), false);
+    int offset = file.writeLong(258, ByteOrder.LITTLE_ENDIAN);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(new byte[] { 2, 1, 0, 0, 0, 0, 0, 0}, offset + frameHeaderSize());
+  }
+
+  @Test
+  public void testWriteTwoLongs() throws Exception {
+    createFile(128 + frameHeaderSize(), false);
+    int offset = file.writeLongs(258, 259, ByteOrder.LITTLE_ENDIAN);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(new byte[] {2, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0}, offset + frameHeaderSize());
+  }
+
+  @Test
+  public void testWriteThreeLongs() throws Exception {
+    createFile(128 + frameHeaderSize(), false);
+    int offset = file.writeLongs(258, 259, 260, ByteOrder.LITTLE_ENDIAN);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(new byte[] {2, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0}, offset + frameHeaderSize());
+  }
+
+  @Test
+  public void testWriteFourLongs() throws Exception {
+    createFile(128 + frameHeaderSize(), false);
+    int offset = file.writeLongs(258, 259, 260, 261, ByteOrder.LITTLE_ENDIAN);
+    Assert.assertEquals(startOffset(), offset);
+    assertBytesAt(new byte[] {2, 1, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 0, 0, 0, 4, 1, 0, 0, 0, 0, 0, 0, 5, 1, 0, 0, 0, 0, 0, 0}, offset + frameHeaderSize());
+  }
+
   protected void assertBytesAt(byte[] expected, int offset) throws IOException {
     assertBytesAt(expected, file, offset);
   }

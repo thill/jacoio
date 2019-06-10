@@ -149,6 +149,46 @@ class RollingConcurrentFile implements ConcurrentFile {
     return offset;
   }
 
+  @Override
+  public int writeLong(long value, ByteOrder byteOrder) throws IOException {
+    checkLength(8);
+    int offset;
+    do {
+      offset = rollingCoordinator.fileForWrite().writeLong(value, byteOrder);
+    } while(offset == NULL_OFFSET);
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(long value1, long value2, ByteOrder byteOrder) throws IOException {
+    checkLength(16);
+    int offset;
+    do {
+      offset = rollingCoordinator.fileForWrite().writeLongs(value1, value2, byteOrder);
+    } while(offset == NULL_OFFSET);
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(long value1, long value2, long value3, ByteOrder byteOrder) throws IOException {
+    checkLength(24);
+    int offset;
+    do {
+      offset = rollingCoordinator.fileForWrite().writeLongs(value1, value2, value3, byteOrder);
+    } while(offset == NULL_OFFSET);
+    return offset;
+  }
+
+  @Override
+  public int writeLongs(long value1, long value2, long value3, long value4, ByteOrder byteOrder) throws IOException {
+    checkLength(32);
+    int offset;
+    do {
+      offset = rollingCoordinator.fileForWrite().writeLongs(value1, value2, value3, value4, byteOrder);
+    } while(offset == NULL_OFFSET);
+    return offset;
+  }
+
   private void checkLength(int length) throws IOException {
     if(length > capacity)
       throw new IOException("length=" + length + " exceeds capacity=" + capacity);

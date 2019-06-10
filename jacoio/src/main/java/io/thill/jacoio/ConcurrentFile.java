@@ -11,10 +11,7 @@
  */
 package io.thill.jacoio;
 
-import io.thill.jacoio.function.BiParametizedWriteFunction;
-import io.thill.jacoio.function.ParametizedWriteFunction;
-import io.thill.jacoio.function.TriParametizedWriteFunction;
-import io.thill.jacoio.function.WriteFunction;
+import io.thill.jacoio.function.*;
 import io.thill.jacoio.mapper.ConcurrentFileMapper;
 import org.agrona.DirectBuffer;
 
@@ -70,7 +67,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param length    the number of bytes to write
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final byte[] srcBytes, final int srcOffset, final int length) throws IOException;
+  int write(byte[] srcBytes, int srcOffset, int length) throws IOException;
 
   /**
    * Write the given buffer from the given offset to the given length
@@ -80,7 +77,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param length    the number of bytes to write
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final DirectBuffer srcBuffer, final int srcOffset, final int length) throws IOException;
+  int write(DirectBuffer srcBuffer, int srcOffset, int length) throws IOException;
 
   /**
    * Write the given ByteBuffer from {@link ByteBuffer#position()} with length={@link ByteBuffer#remaining()}. The position of the {@link ByteBuffer} will not
@@ -89,7 +86,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param srcByteBuffer the source byte buffer
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final ByteBuffer srcByteBuffer) throws IOException;
+  int write(ByteBuffer srcByteBuffer) throws IOException;
 
   /**
    * Write the given CharSequence as ascii characters
@@ -97,7 +94,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param srcCharSequence the source character sequence
    * @return the offset at which the characters were written, -1 if it could not fit
    */
-  int writeAscii(final CharSequence srcCharSequence) throws IOException;
+  int writeAscii(CharSequence srcCharSequence) throws IOException;
 
   /**
    * Write the given CharSequence as 2-byte characters
@@ -106,7 +103,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param byteOrder       the destination byte-order
    * @return the offset at which the characters were written, -1 if it could not fit
    */
-  int writeChars(final CharSequence srcCharSequence, ByteOrder byteOrder) throws IOException;
+  int writeChars(CharSequence srcCharSequence, ByteOrder byteOrder) throws IOException;
 
   /**
    * Write to the underlying buffer using the given {@link WriteFunction}
@@ -115,7 +112,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  int write(final int length, final WriteFunction writeFunction) throws IOException;
+  int write(int length, WriteFunction writeFunction) throws IOException;
 
   /**
    * Write to the underlying buffer using the given {@link ParametizedWriteFunction} with 1 parameter to pass through.
@@ -125,7 +122,7 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  <P> int write(final int length, P parameter, final ParametizedWriteFunction<P> writeFunction) throws IOException;
+  <P> int write(int length, P parameter, ParametizedWriteFunction<P> writeFunction) throws IOException;
 
   /**
    * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 2 parameters to pass through.
@@ -136,10 +133,10 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  <P1, P2> int write(final int length, P1 parameter1, P2 parameter2, final BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException;
+  <P1, P2> int write(int length, P1 parameter1, P2 parameter2, BiParametizedWriteFunction<P1, P2> writeFunction) throws IOException;
 
   /**
-   * Write to the underlying buffer using the given {@link BiParametizedWriteFunction} with 3 parameters to pass through.
+   * Write to the underlying buffer using the given {@link TriParametizedWriteFunction} with 3 parameters to pass through.
    *
    * @param length        the total number of bytes that will be written by the {@link WriteFunction}
    * @param parameter1    the first parameter to pass through to the write function
@@ -148,8 +145,51 @@ public interface ConcurrentFile extends AutoCloseable {
    * @param writeFunction the write function
    * @return the offset at which the bytes were written, -1 if it could not fit
    */
-  <P1, P2, P3> int write(final int length, P1 parameter1, P2 parameter2, P3 parameter3, final TriParametizedWriteFunction<P1, P2, P3> writeFunction) throws IOException;
+  <P1, P2, P3> int write(int length, P1 parameter1, P2 parameter2, P3 parameter3, TriParametizedWriteFunction<P1, P2, P3> writeFunction) throws IOException;
+
+  /**
+   * Write the given long to the underlying buffer
+   *
+   * @param value     the long value to write
+   * @param byteOrder the byte order
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  int writeLong(long value, ByteOrder byteOrder) throws IOException;
+
+  /**
+   * Write the given longs to the underlying buffer
+   *
+   * @param value1    the first long value to write
+   * @param value2    the second long value to write
+   * @param byteOrder the byte order
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  int writeLongs(long value1, long value2, ByteOrder byteOrder) throws IOException;
+
+  /**
+   * Write the given longs to the underlying buffer
+   *
+   * @param value1    the first long value to write
+   * @param value2    the second long value to write
+   * @param value3    the third long value to write
+   * @param byteOrder the byte order
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  int writeLongs(long value1, long value2, long value3, ByteOrder byteOrder) throws IOException;
+
+  /**
+   * Write the given longs to the underlying buffer
+   *
+   * @param value1    the first long value to write
+   * @param value2    the second long value to write
+   * @param value3    the third long value to write
+   * @param value4    the fourth long value to write
+   * @param byteOrder the byte order
+   * @return the offset at which the bytes were written, -1 if it could not fit
+   */
+  int writeLongs(long value1, long value2, long value3, long value4, ByteOrder byteOrder) throws IOException;
 
   @Override
   void close() throws IOException;
+
 }
