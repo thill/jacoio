@@ -11,6 +11,7 @@
  */
 package io.thill.jacoio.mapper;
 
+import io.thill.jacoio.function.FileCreatedListener;
 import io.thill.jacoio.function.FileProvider;
 
 import java.io.File;
@@ -39,6 +40,7 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
   private final boolean yieldOnAllocateContention;
   private final boolean preallocate;
   private final long preallocateCheckMillis;
+  private final FileCreatedListener fileCreatedListener;
   private final Thread preallocateThread;
 
   MultiProcessMappedFileProvider(final File coordinationFile,
@@ -47,13 +49,15 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
                                  final FileProvider underlyingFileProvider,
                                  final boolean yieldOnAllocateContention,
                                  final boolean preallocate,
-                                 final long preallocateCheckMillis) throws IOException {
+                                 final long preallocateCheckMillis,
+                                 final FileCreatedListener fileCreatedListener) throws IOException {
     this.coordinationFile = new CoordinationFile(coordinationFile, underlyingFileProvider, preallocate, yieldOnAllocateContention);
     this.fileCapacity = fileCapacity;
     this.fillWithZeros = fillWithZeros;
     this.yieldOnAllocateContention = yieldOnAllocateContention;
     this.preallocate = preallocate;
     this.preallocateCheckMillis = preallocateCheckMillis;
+    this.fileCreatedListener = fileCreatedListener;
 
     final String coordinationContents = this.coordinationFile.next("");
     final File initialCurFile = CoordinationFile.curFile(coordinationContents);
@@ -112,7 +116,10 @@ class MultiProcessMappedFileProvider implements MappedFileProvider {
   }
 
   private MappedConcurrentFile mapFile(File file) throws IOException {
-    return MultiProcessConcurrentFile.map(file, fileCapacity, fillWithZeros);
+    final MappedConcurrentFile mappedFile = MultiProcessConcurrentFile.map(file, fileCapacity, fillWithZeros);
+    if(fileCreatedListener != null)
+      fileCreatedListener.onCreated(mappedFile);
+    return mappedFile;
   }
 
   private void preallocateLoop() {

@@ -1,10 +1,15 @@
 # jacoio
 #### Java Concurrent I/O: Lock-Free and Multi-Process
 
+
 ## Modules
 - `jacoio` - Lock-free concurrent file writing using `ConcurrentFile` implementations
 - `jacoio-slf4j` - Implements an SLF4J binding that writes to a rolling `ConcurrentFile`
 
+
+## How it works
+Each process/thread is able to reserve space in the file atomically, then write to that reserved space. This means that all write contention is resolved with a single atomic operation before performing the underlying I/O.
+  
 
 ## ConcurrentFile
 The entire API centers around the `ConcurrentFile` interface. This interface provides the API for concurrent, lock-free writing to underlying files. Here are some of the primary method signatures:
@@ -129,8 +134,8 @@ ConcurrentFile file = ConcurrentFile.map()
 ```
 
 
-## Rolling FileCompleteFunction
-If you want to get a callback for a file when it is being closed/rolled, you may specify a `FileCompleteFunction`. See the following example that prints filenames as they are rolled.
+## Rolling FileCompleteListener
+If you want to get a callback for a file when it is being closed/rolled, you may specify a `FileCompleteListener`. See the following example that prints filenames as they are rolled.
 ```
 final AtomicLong fileNumber = new AtomicLong();
 ConcurrentFile file = ConcurrentFile.map()
@@ -138,11 +143,12 @@ ConcurrentFile file = ConcurrentFile.map()
     .capacity(4096)
     .roll(r -> r
         .enabled(true)
-        .fileCompleteFunction(
+        .fileCompleteListener(
             concurrentFile -> System.out.println("Complete: " + concurrentFile.getFile().getPath())
         )
     ).map();
 ```
+See Also: `FileCreatedListener`, `FileMappedListener`, and `FileClosedListener`
 
 
 ## Quick Reference: Mapper Properties
@@ -163,6 +169,9 @@ final ConcurrentFile concurrentFile = ConcurrentFile.map()
         .dateFormat("yyyyMMdd_HHmm")     // The format to use for the date in rolling filenames. Defaults to yyyyMMdd_HHmmss.
         .fileProvider(myFileProvider)    // Optionally used to override the default ${prefix}${datetime}${suffix} rolling file format.
         .yieldOnAllocateContention(true) // Flag to call Thread.yield() while waiting for another thread to finish allocating a new file. Defaults to true.
-        .fileCompleteFunction(myFunc)    // Function to handle files before they are closed and rolled. This will be called from the thread that is closing the file.     
+        .fileCreatedListener(myFunc)     // Function to handle files when they are created. This will be called from the thread that creates the file.
+        .fileMappedListener(myFunc)      // Function to handle files when they are mapped to be used. This will be called from the thread that cycles the file in for use.
+        .fileCompleteListener(myFunc)    // Function to handle files before they are closed and rolled. This will be called from the thread that is closing the file.
+        .fileClosedListener(myFunc)      // Function to handle files after they have been unmapped and closed. This will be called from the thread that is closing the file.
     ).map();
 ```

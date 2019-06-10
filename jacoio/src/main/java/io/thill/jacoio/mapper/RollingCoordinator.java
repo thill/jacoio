@@ -11,9 +11,11 @@
  */
 package io.thill.jacoio.mapper;
 
-import io.thill.jacoio.function.FileCompleteFunction;
-import io.thill.jacoio.function.FileProvider;
+import io.thill.jacoio.function.FileClosedListener;
+import io.thill.jacoio.function.FileCompleteListener;
+import io.thill.jacoio.function.FileMappedListener;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -34,16 +36,22 @@ class RollingCoordinator implements AutoCloseable {
   private final MappedFileProvider mappedFileProvider;
   private final boolean asyncClose;
   private final boolean yieldOnAllocateContention;
-  private final FileCompleteFunction fileCompleteFunction;
+  private final FileMappedListener fileMappedListener;
+  private final FileCompleteListener fileCompleteListener;
+  private final FileClosedListener fileClosedListener;
 
   RollingCoordinator(final MappedFileProvider mappedFileProvider,
                      final boolean yieldOnAllocateContention,
                      final boolean asyncClose,
-                     final FileCompleteFunction fileCompleteFunction) throws IOException {
+                     final FileMappedListener fileMappedListener,
+                     final FileCompleteListener fileCompleteListener,
+                     final FileClosedListener fileClosedListener) throws IOException {
     this.mappedFileProvider = mappedFileProvider;
     this.yieldOnAllocateContention = yieldOnAllocateContention;
     this.asyncClose = asyncClose;
-    this.fileCompleteFunction = fileCompleteFunction;
+    this.fileMappedListener = fileMappedListener;
+    this.fileCompleteListener = fileCompleteListener;
+    this.fileClosedListener = fileClosedListener;
     this.curFileRef.set(mappedFileProvider.nextFile());
   }
 
@@ -68,6 +76,8 @@ class RollingCoordinator implements AutoCloseable {
           // expected current mapper is actual current mapper -> this thread wins, close current file and set new file
           close(curFile, asyncClose);
           final MappedConcurrentFile newFile = mappedFileProvider.nextFile();
+          if(fileMappedListener != null)
+            fileMappedListener.onMapped(newFile);
           curFileRef.set(newFile);
           return newFile;
         } else {
@@ -99,9 +109,12 @@ class RollingCoordinator implements AutoCloseable {
           if(yieldOnAllocateContention)
             Thread.yield();
         }
-        if(fileCompleteFunction != null)
-          fileCompleteFunction.onComplete(concurrentFile);
+        if(fileCompleteListener != null)
+          fileCompleteListener.onComplete(concurrentFile);
+        final File underlyingFile = concurrentFile.getFile();
         concurrentFile.close();
+        if(fileClosedListener != null)
+          fileClosedListener.onClosed(underlyingFile);
       } catch(Throwable t) {
         t.printStackTrace();
       }

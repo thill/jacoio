@@ -1,7 +1,7 @@
 package io.thill.jacoio.mapper;
 
 import io.thill.jacoio.ConcurrentFile;
-import io.thill.jacoio.function.FileCompleteFunction;
+import io.thill.jacoio.function.FileCompleteListener;
 import org.agrona.DirectBuffer;
 import org.agrona.IoUtil;
 import org.agrona.concurrent.UnsafeBuffer;
@@ -47,7 +47,7 @@ public class StressTest {
                           .preallocateCheckMillis(5)
                           .fileNameSuffix(FILE_SUFFIX)
                           .fileNamePrefix("")
-                          .fileCompleteFunction(fileCompleteFunction)
+                          .fileCompleteListener(fileCompleteListener)
                   ).map();
           concurrentFiles.add(file);
           writers.add(new ConcurrentFileWriter(file, id));
@@ -64,7 +64,7 @@ public class StressTest {
                         .preallocateCheckMillis(5)
                         .fileNameSuffix(FILE_SUFFIX)
                         .fileNamePrefix("")
-                        .fileCompleteFunction(fileCompleteFunction)
+                        .fileCompleteListener(fileCompleteListener)
                 ).map();
         concurrentFiles.add(file);
 
@@ -181,7 +181,7 @@ public class StressTest {
     }
   }
 
-  private final FileCompleteFunction fileCompleteFunction = new FileCompleteFunction() {
+  private final FileCompleteListener fileCompleteListener = new FileCompleteListener() {
     @Override
     public void onComplete(ConcurrentFile concurrentFile) {
       logger.info("Complete: {}", concurrentFile.getFile().getPath());

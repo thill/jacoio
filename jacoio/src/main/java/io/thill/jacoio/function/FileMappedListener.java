@@ -14,6 +14,6 @@ package io.thill.jacoio.function;
 import io.thill.jacoio.ConcurrentFile;
 
 @FunctionalInterface
-public interface FileCompleteFunction {
-  void onComplete(ConcurrentFile concurrentFile);
+public interface FileMappedListener {
+  void onMapped(ConcurrentFile concurrentFile);
 }
